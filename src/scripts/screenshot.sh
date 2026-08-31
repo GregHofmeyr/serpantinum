@@ -43,7 +43,7 @@ SAVE_DIR="${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots"
 RECORD_DIR="${XDG_VIDEOS_DIR:-$HOME/Videos}/Recordings"
 mkdir -p "$SAVE_DIR" "$RECORD_DIR"
 
-REQUIRED_CMDS=("grim" "satty" "wl-copy" "pactl" "quickshell" "zbarimg" "python3")
+REQUIRED_CMDS=("grim" "swappy" "wl-copy" "pactl" "quickshell" "zbarimg" "python3")
 MISSING_CMDS=()
 for cmd in "${REQUIRED_CMDS[@]}"; do
     if ! command -v "$cmd" &> /dev/null; then
@@ -326,10 +326,11 @@ if [ "$FULL_MODE" = true ] || [ -n "$GEOMETRY" ]; then
     fi
 
     if [ "$EDIT_MODE" = true ]; then
-        # GSK_RENDERER: upstream hardcodes `gl`, which cold-starts/hangs on NVIDIA (G16).
-        # `ngl` (GTK4 new GL renderer) avoids it; fall back to `cairo` (software) if a
-        # future driver regresses. — Greg fork patch (2026-08-31)
-        GSK_RENDERER=ngl satty --filename "$TMP_SCREENSHOT" --output-filename "$FILENAME" --init-tool brush --copy-command "wl-copy --type image/png"
+        # Upstream uses satty (GTK4 0.22), which busy-loops at 100% CPU and never draws a
+        # window on this GTK4 4.22 + Hyprland + NVIDIA setup (independent of GSK_RENDERER —
+        # gl/ngl/cairo all spin). swappy (GTK3) works reliably and is the standard Wayland
+        # annotation tool. — Greg fork patch (2026-08-31)
+        swappy -f "$TMP_SCREENSHOT" -o "$FILENAME"
     else
         cp "$TMP_SCREENSHOT" "$FILENAME"
     fi
