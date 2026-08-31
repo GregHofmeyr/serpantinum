@@ -108,7 +108,7 @@
       },
       "respect_inhibitors": {
         "title": "Respect app inhibitors",
-        "desc": "Honor Wayland idle inhibitor locks from applications"
+        "desc": "Honor wayland idle inhibitor locks from applications"
       },
       "pipeline_notice": "Order: Dim screen < lock session < display off < suspend. Actions violating this order are excluded.",
       "order_violation": "Excluded",
@@ -123,7 +123,7 @@
       "warning_command": {
         "title": "Warning command",
         "desc": "Offset and command to execute before action",
-        "placeholder": "e.g. notify-send 'Warning'"
+        "placeholder": "e.g. notify-send 'warning'"
       },
       "before_command": {
         "title": "Before command",
@@ -133,7 +133,7 @@
       "resume_command": {
         "title": "Resume command",
         "desc": "Executed when user activity resumes",
-        "placeholder": "e.g. notify-send 'Resumed'"
+        "placeholder": "e.g. notify-send 'resumed'"
       },
       "dim": {
         "title": "Dim screen",
@@ -248,7 +248,7 @@
     },
     "bar": {
       "modules": {
-        "vis": "Visualizer (Cava)",
+        "vis": "Visualizer (cava)",
         "actions": "Actions",
         "workspaces": "Workspaces",
         "media": "Media",
@@ -260,8 +260,8 @@
         "battery": "Battery",
         "focus": "Focus",
         "sysmon": "System monitor",
-        "timedate": "Time/Date",
-        "info": "Recording/Timer",
+        "timedate": "Time/date",
+        "info": "Recording/timer",
         "weather": "Weather"
       },
       "position": {
@@ -320,7 +320,7 @@
     "theme": {
       "font": {
         "title": "Font",
-        "desc": "Choose the default used by Serpantinum",
+        "desc": "Choose the default used by serpantinum",
         "select": "Select..."
       },
       "radius": {
@@ -408,7 +408,7 @@
     },
     "wellbeing": {
       "desktop": "Desktop",
-      "not_available": "N/A",
+      "not_available": "N/a",
       "am": "AM",
       "pm": "PM",
       "today": "Today",
@@ -458,34 +458,34 @@
       "title": "Autostart",
       "desc": "Manage programs, binaries, and scripts launched automatically upon session start",
       "master_switch": {
-        "title": "Enable Autostart",
+        "title": "Enable autostart",
         "desc": "Globally execute the configured startup application list on login"
       },
-      "add_button": "Add Application",
+      "add_button": "Add application",
       "empty_title": "No autostart applications",
-      "empty_desc": "Click 'Add Application' to specify commands, binaries, delays, and repetition counts.",
+      "empty_desc": "Click 'add application' to specify commands, binaries, delays, and repetition counts.",
       "name_label": "Name",
-      "name_placeholder": "e.g. Discord, EasyEffects, Script",
-      "exec_label": "Executable Command",
+      "name_placeholder": "e.g. Discord, EasyEffects, script",
+      "exec_label": "Executable command",
       "exec_placeholder": "Binary path or name with flags (e.g. discord --start-minimized)",
-      "browse_file": "Browse File",
-      "delay_label": "Startup Delay",
+      "browse_file": "Browse file",
+      "delay_label": "Startup delay",
       "delay_desc": "Time in seconds to wait before launching",
       "delay_unit": "s",
-      "count_label": "Launch Count",
+      "count_label": "Launch count",
       "count_desc": "Number of instances to execute upon startup",
-      "repeat_delay_label": "Repeat Interval",
+      "repeat_delay_label": "Repeat interval",
       "repeat_delay_desc": "Delay between repeated executions",
       "workspace_label": "Workspace",
       "workspace_default": "Default",
-      "silent_label": "Silent Launch",
+      "silent_label": "Silent launch",
       "silent_desc": "Do not steal focus when window opens",
-      "condition_label": "Launch Condition",
+      "condition_label": "Launch condition",
       "condition_always": "Always",
-      "condition_ac_only": "AC Power Only",
-      "condition_battery_only": "Battery Only",
-      "condition_multi_monitor": "Multi-Monitor Only",
-      "restart_crash_label": "Keep-Alive / Watchdog",
+      "condition_ac_only": "AC power only",
+      "condition_battery_only": "Battery only",
+      "condition_multi_monitor": "Multi-monitor only",
+      "restart_crash_label": "Keep-alive / watchdog",
       "restart_crash_desc": "Automatically respawn process if it crashes",
       "status_running": "Running",
       "status_success": "Success",
@@ -493,9 +493,9 @@
       "status_idle": "Idle",
       "view_log": "Log",
       "no_log": "Log is currently empty",
-      "run_now": "Run Now",
+      "run_now": "Run now",
       "delete": "Delete",
-      "toggle": "Enable / Disable"
+      "toggle": "Enable / disable"
     }
   },
   "sysnotif": {
@@ -600,7 +600,7 @@
   "network": {
     "tabs": {
       "ethernet": "Ethernet",
-      "wifi": "Wi-Fi",
+      "wifi": "Wi-fi",
       "bluetooth": "Bluetooth"
     },
     "status": {
@@ -837,7 +837,7 @@
     },
     "network": {
       "name": "Network settings",
-      "desc": "Manage WiFi, Ethernet, and network connections"
+      "desc": "Manage WiFi, ethernet, and network connections"
     },
     "volume": {
       "name": "Volume & audio",
@@ -887,7 +887,7 @@
   },
   "cli": {
     "usage": "Usage: serpantinum [command] [options...]",
-    "description": "A desktop shell for Wayland compositors.",
+    "description": "A desktop shell for wayland compositors.",
     "commands": "Commands:",
     "script_commands": "Script commands:",
     "launch_desc": "Launch standalone components (start, widgetredactor)",
@@ -949,7 +949,7 @@
     "launching": "Launching serpantinum daemon...",
     "cli": {
       "usage": "Usage: serpantinumd <command> [options...]",
-      "description": "Background service daemon for Serpantinum desktop shell.",
+      "description": "Background service daemon for serpantinum desktop shell.",
       "commands": "Commands:",
       "cmd_start": "Start the daemon service and launch background workers",
       "cmd_stop": "Stop the running daemon service",
@@ -975,11 +975,11 @@
     },
     "os": {
       "error_root": "Error: Do not run this script directly with root/sudo. Run as normal user.",
-      "error_unsupported": "Unsupported OS ({os}). Serpantinum strictly supports Arch Linux and derivatives.",
+      "error_unsupported": "Unsupported OS ({os}). Serpantinum strictly supports arch linux and derivatives.",
       "error_not_found": "Cannot detect OS. /etc/os-release not found.",
       "unknown_cpu": "Unknown CPU",
       "unknown_gpu": "Unknown / virtual machine",
-      "default_os": "Arch Linux"
+      "default_os": "Arch linux"
     },
     "ui": {
       "user": "User:",
@@ -995,7 +995,7 @@
       "donate": "Donate:",
       "donate_sub": "(Support the project!)",
       "packages_prompt": " Packages > ",
-      "packages_header": " Press Esc or Enter to return ",
+      "packages_header": " Press esc or enter to return ",
       "package_missing": "{pkg} (missing - will be installed)",
       "package_installed": "{pkg} (installed)",
       "compositors_title": "=== Select target compositors ===",
@@ -1003,18 +1003,18 @@
       "not_installed": " (not installed)",
       "done": "Done",
       "compositors_prompt": " Compositor setup > ",
-      "compositors_header": " Toggle supported compositors, then select Done ",
+      "compositors_header": " Toggle supported compositors, then select done ",
       "sddm_title": "=== Display manager (SDDM) setup ===",
       "sddm_detected_active": "Detected active/enabled display manager: {dm}",
       "sddm_detected_none": "Detected active/enabled display manager: None",
-      "sddm_opt_install": "Install and configure SDDM (Material You theme)",
+      "sddm_opt_install": "Install and configure SDDM (material you theme)",
       "sddm_opt_disable": "Disable and remove '{dm}'",
-      "sddm_opt_wayland": "Force Wayland backend",
+      "sddm_opt_wayland": "Force wayland backend",
       "sddm_prompt": " SDDM setup > ",
-      "sddm_header": " Toggle options, then select Done ",
-      "target_compositor_none": "Target compositor [Required - none selected]",
+      "sddm_header": " Toggle options, then select done ",
+      "target_compositor_none": "Target compositor [required - none selected]",
       "target_compositor_selected": "Target compositor [{comps}]",
-      "target_compositor_req": "Target compositor ({label}) [Required]",
+      "target_compositor_req": "Target compositor ({label}) [required]",
       "target_compositor_label": "Target compositor ({comps})",
       "unsupported_compositor": "Unsupported compositor",
       "menu_overview": "Package installation overview ({count} core packages)",
@@ -1026,7 +1026,7 @@
       "menu_install": "Install",
       "menu_exit": "Exit",
       "main_menu_prompt": " Main menu > ",
-      "main_menu_header": " Use arrow keys to navigate, Enter to select ",
+      "main_menu_header": " Use arrow keys to navigate, enter to select ",
       "error_no_compositor": "You must choose at least one supported compositor before proceeding.",
       "tagline": "A desktop shell built for you",
       "support_creator": "Support the creator:",
@@ -1034,10 +1034,10 @@
       "installed_success": "✔ Serpantinum {ver} ({commit}) installed successfully.",
       "failed_packages": "The following packages encountered errors during installation:",
       "restart_prompt": "Restart your compositor or run 'serpantinumd start' to begin.",
-      "ask_reboot": "Do you want to restart? [y/N] "
+      "ask_reboot": "Do you want to restart? [y/n] "
     },
     "deps": {
-      "syncing": "Synchronizing and updating system packages (pacman -Syyu)...",
+      "syncing": "Synchronizing and updating system packages (pacman -syyu)...",
       "all_installed": "-> All packages are already installed! Skipping package download phase.",
       "missing_count": "-> Found {count} missing packages to install.",
       "installing_title": "Installing system packages and dependencies...",
@@ -1048,7 +1048,7 @@
     "deploy": {
       "configuring_sddm": "Configuring SDDM display manager...",
       "disabling_dm": "-> Disabling conflicting display manager: {dm}",
-      "sddm_success": "-> SDDM Material You theme installed and service enabled [ OK ]"
+      "sddm_success": "-> SDDM material you theme installed and service enabled [ OK ]"
     }
   },
   "translator": {
@@ -1056,15 +1056,15 @@
     "status_translating": "Translating...",
     "speed": "Speed: ",
     "detected": "Detected: ",
-    "input_label": "Source Text",
+    "input_label": "Source text",
     "placeholder": "Type, paste, or speak text here...",
     "chars": "chars",
     "translation_label": "Translation",
     "empty_prompt": "Translation will appear here instantly...",
     "recent": "Recent:",
     "failed": "No translation available",
-    "quick_settings": "Quick Replace Settings",
-    "replace_settings_title": "Quick Selection Replace",
+    "quick_settings": "Quick replace settings",
+    "replace_settings_title": "Quick selection replace",
     "replace_settings_desc": "Translates selected text and replaces in-place",
     "auto_paste": "Auto-paste translated text",
     "auto_paste_sub": "If disabled — translation is only copied to clipboard",

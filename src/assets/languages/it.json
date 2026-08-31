@@ -48,16 +48,16 @@
       },
       "add_button": "Aggiungi applicazione",
       "empty_title": "Nessuna applicazione con avvio automatico",
-      "empty_desc": "Fai clic su \"Aggiungi applicazione\" per specificare comandi, file binari, ritardi e numero di ripetizioni.",
+      "empty_desc": "Fai clic su \"aggiungi applicazione\" per specificare comandi, file binari, ritardi e numero di ripetizioni.",
       "name_label": "Nome",
-      "name_placeholder": "per esempio. Discord, EasyEffects, Script",
+      "name_placeholder": "per esempio. Discord, EasyEffects, script",
       "exec_label": "Comando eseguibile",
       "exec_placeholder": "Percorso binario o nome con flag (ad esempio discord --start-minimized)",
       "browse_file": "Sfoglia file",
       "delay_label": "Ritardo di avvio",
       "delay_desc": "Tempo in secondi da attendere prima del lancio",
       "delay_unit": "S",
-      "count_label": "Avvia Conte",
+      "count_label": "Avvia conte",
       "count_desc": "Numero di istanze da eseguire all'avvio",
       "repeat_delay_label": "Ripeti intervallo",
       "repeat_delay_desc": "Ritardo tra esecuzioni ripetute",
@@ -70,7 +70,7 @@
       "condition_ac_only": "Solo alimentazione CA",
       "condition_battery_only": "Solo batteria",
       "condition_multi_monitor": "Solo monitor multipli",
-      "restart_crash_label": "Keep-Alive/Cane da guardia",
+      "restart_crash_label": "Keep-alive/cane da guardia",
       "restart_crash_desc": "Processo di respawn automatico in caso di arresto anomalo",
       "status_running": "Corsa",
       "status_success": "Successo",
@@ -80,7 +80,7 @@
       "no_log": "Il registro è attualmente vuoto",
       "run_now": "Corri adesso",
       "delete": "Eliminare",
-      "toggle": "Abilita / Disabilita"
+      "toggle": "Abilita / disabilita"
     },
     "launcher": {
       "position": {
@@ -152,7 +152,7 @@
       },
       "respect_inhibitors": {
         "title": "Rispetta gli inibitori delle app",
-        "desc": "Honor Wayland blocca l'inibitore del minimo dalle applicazioni"
+        "desc": "Honor wayland blocca l'inibitore del minimo dalle applicazioni"
       },
       "pipeline_notice": "Ordine: oscuramento schermo <blocco sessione <spegnimento display <sospensione. Sono escluse le azioni che violano questo ordine.",
       "order_violation": "Escluso",
@@ -167,7 +167,7 @@
       "warning_command": {
         "title": "Comando di avviso",
         "desc": "Offset e comando da eseguire prima dell'azione",
-        "placeholder": "per esempio. notifica-invia 'Avvertenza'"
+        "placeholder": "per esempio. notifica-invia 'avvertenza'"
       },
       "before_command": {
         "title": "Prima del comando",
@@ -177,7 +177,7 @@
       "resume_command": {
         "title": "Riprendi il comando",
         "desc": "Eseguito quando riprende l'attività dell'utente",
-        "placeholder": "per esempio. notifica-invia 'Ripristinato'"
+        "placeholder": "per esempio. notifica-invia 'ripristinato'"
       },
       "dim": {
         "title": "Schermo scuro",
@@ -292,7 +292,7 @@
     },
     "bar": {
       "modules": {
-        "vis": "Visualizzatore (Cava)",
+        "vis": "Visualizzatore (cava)",
         "actions": "Azioni",
         "workspaces": "Spazi di lavoro",
         "media": "Media",
@@ -305,7 +305,7 @@
         "focus": "Messa a fuoco",
         "sysmon": "Monitoraggio del sistema",
         "timedate": "Ora/data",
-        "info": "Registrazione/Timer",
+        "info": "Registrazione/timer",
         "weather": "Tempo atmosferico"
       },
       "position": {
@@ -364,7 +364,7 @@
     "theme": {
       "font": {
         "title": "Font",
-        "desc": "Scegli il valore predefinito utilizzato da Serpantinum",
+        "desc": "Scegli il valore predefinito utilizzato da serpantinum",
         "select": "Selezionare..."
       },
       "radius": {
@@ -452,7 +452,7 @@
     },
     "wellbeing": {
       "desktop": "Desktop",
-      "not_available": "N / A",
+      "not_available": "N / a",
       "am": "SONO",
       "pm": "PM",
       "today": "Oggi",
@@ -674,7 +674,7 @@
         }
       },
       "notification": {
-        "app_name": "Temporizzatore Quickshell",
+        "app_name": "Temporizzatore quickshell",
         "timer_finished_title": "Cronometro terminato",
         "timer_finished_body": "Il tuo timer per {time} è stato completato.",
         "focus_complete_title": "Messa a fuoco completata",
@@ -690,7 +690,7 @@
   "screenshot": {
     "video_mode": "Fare clic su record (il portale gestisce la selezione dell'area)",
     "select_region": "Seleziona la regione da catturare",
-    "no_microphones": "Nessun microfono (installa Pulseaudio)",
+    "no_microphones": "Nessun microfono (installa pulseaudio)",
     "qr_timeout": "Scansione scaduta o non riuscita.",
     "qr_not_found": "Nessun codice QR trovato.",
     "notifications": {
@@ -838,7 +838,7 @@
     },
     "network": {
       "name": "Impostazioni di rete",
-      "desc": "Gestisci WiFi, Ethernet e connessioni di rete"
+      "desc": "Gestisci WiFi, ethernet e connessioni di rete"
     },
     "volume": {
       "name": "Volume e audio",
@@ -846,7 +846,7 @@
     },
     "guide": {
       "name": "Impostazioni",
-      "desc": "Configurazione e impostazioni di Serpantinum"
+      "desc": "Configurazione e impostazioni di serpantinum"
     },
     "calendar": {
       "name": "Calendario e orologio",
@@ -892,7 +892,7 @@
   },
   "cli": {
     "usage": "Utilizzo: serpantino [comando] [opzioni...]",
-    "description": "Una shell desktop per i compositori Wayland.",
+    "description": "Una shell desktop per i compositori wayland.",
     "commands": "Comandi:",
     "script_commands": "Comandi di script:",
     "launch_desc": "Avvia componenti autonomi (start, widgetredactor)",
@@ -904,7 +904,7 @@
     "version_desc": "Visualizza le informazioni sulla versione ed esce",
     "help_desc": "Mostra questo messaggio di aiuto ed esci",
     "examples": "Esempi:",
-    "daemon_stopped": "Il demone Serpantinum si fermò.",
+    "daemon_stopped": "Il demone serpantinum si fermò.",
     "starting_daemon": "Il demone non è in esecuzione. Avvio serpantinumd in background...",
     "error_missing_qml": "Errore: target mancante da avviare.",
     "launch_usage": "Utilizzo: serpantino launch <start|widgetredactor> [args...]",
@@ -955,7 +955,7 @@
     "launching": "Avvio del demone serpantino...",
     "cli": {
       "usage": "Utilizzo: serpantinumd <comando> [opzioni...]",
-      "description": "Demone del servizio in background per la shell desktop Serpantinum.",
+      "description": "Demone del servizio in background per la shell desktop serpantinum.",
       "commands": "Comandi:",
       "cmd_start": "Avvia il servizio demone e avvia i lavoratori in background",
       "cmd_stop": "Interrompere il servizio demone in esecuzione",
@@ -964,9 +964,9 @@
       "opt_verbose": "Abilita la registrazione dettagliata dell'output",
       "opt_version": "Mostra le informazioni sulla versione ed esce",
       "opt_help": "Mostra questo messaggio di aiuto ed esci",
-      "stopped": "Il demone Serpantinum si fermò.",
-      "status_running": "Il demone Serpantinum è in esecuzione (PID: {PID}).",
-      "status_stopped": "Il demone Serpantinum non è in esecuzione.",
+      "stopped": "Il demone serpantinum si fermò.",
+      "status_running": "Il demone serpantinum è in esecuzione (PID: {PID}).",
+      "status_stopped": "Il demone serpantinum non è in esecuzione.",
       "unknown_arg": "Argomento sconosciuto: {ARG}"
     }
   },
@@ -981,7 +981,7 @@
     },
     "os": {
       "error_root": "Errore: non eseguire questo script direttamente con root/sudo. Esegui come utente normale.",
-      "error_unsupported": "Sistema operativo non supportato ({os}). Serpantinum supporta rigorosamente Arch Linux e derivati.",
+      "error_unsupported": "Sistema operativo non supportato ({os}). Serpantinum supporta rigorosamente arch linux e derivati.",
       "error_not_found": "Impossibile rilevare il sistema operativo. /etc/os-release non trovato.",
       "unknown_cpu": "CPU sconosciuta",
       "unknown_gpu": "Macchina sconosciuta/virtuale",
@@ -1001,7 +1001,7 @@
       "donate": "Donare:",
       "donate_sub": "(Sostieni il progetto!)",
       "packages_prompt": "Pacchetti >",
-      "packages_header": "Premi Esc o Invio per tornare",
+      "packages_header": "Premi esc o invio per tornare",
       "package_missing": "{pkg} (mancante - verrà installato)",
       "package_installed": "{pkg} (installato)",
       "compositors_title": "=== Seleziona i compositori di destinazione ===",
@@ -1009,18 +1009,18 @@
       "not_installed": "(non installato)",
       "done": "Fatto",
       "compositors_prompt": "Configurazione del compositore >",
-      "compositors_header": "Attiva/disattiva i compositori supportati, quindi seleziona Fine",
-      "sddm_title": "=== Configurazione del Display Manager (SDDM) ===",
+      "compositors_header": "Attiva/disattiva i compositori supportati, quindi seleziona fine",
+      "sddm_title": "=== Configurazione del display manager (SDDM) ===",
       "sddm_detected_active": "Rilevato display manager attivo/abilitato: {dm}",
       "sddm_detected_none": "Rilevato display manager attivo/abilitato: nessuno",
-      "sddm_opt_install": "Installa e configura SDDM (tema Material You)",
+      "sddm_opt_install": "Installa e configura SDDM (tema material you)",
       "sddm_opt_disable": "Disabilita e rimuovi '{dm}'",
-      "sddm_opt_wayland": "Backend Force Wayland",
+      "sddm_opt_wayland": "Backend force wayland",
       "sddm_prompt": "Configurazione SDDM >",
-      "sddm_header": "Attiva/disattiva le opzioni, quindi seleziona Fine",
+      "sddm_header": "Attiva/disattiva le opzioni, quindi seleziona fine",
       "target_compositor_none": "Compositore di destinazione [richiesto - nessuno selezionato]",
       "target_compositor_selected": "Compositore di destinazione [{comps}]",
-      "target_compositor_req": "Compositore di destinazione ({label}) [Obbligatorio]",
+      "target_compositor_req": "Compositore di destinazione ({label}) [obbligatorio]",
       "target_compositor_label": "Compositore di destinazione ({comps})",
       "unsupported_compositor": "Compositore non supportato",
       "menu_overview": "Panoramica sull'installazione del pacchetto ({count} pacchetti principali)",
@@ -1032,7 +1032,7 @@
       "menu_install": "Installare",
       "menu_exit": "Uscita",
       "main_menu_prompt": "Menù principale >",
-      "main_menu_header": "Utilizzare i tasti freccia per navigare, Invio per selezionare",
+      "main_menu_header": "Utilizzare i tasti freccia per navigare, invio per selezionare",
       "error_no_compositor": "Devi scegliere almeno un compositore supportato prima di procedere.",
       "tagline": "Una shell desktop creata per te",
       "support_creator": "Sostieni il creatore:",
@@ -1043,7 +1043,7 @@
       "ask_reboot": "Vuoi ricominciare? [sì/no]"
     },
     "deps": {
-      "syncing": "Sincronizzazione e aggiornamento dei pacchetti di sistema (pacman -Syyu)...",
+      "syncing": "Sincronizzazione e aggiornamento dei pacchetti di sistema (pacman -syyu)...",
       "all_installed": "-> Tutti i pacchetti sono già installati! Saltare la fase di download del pacchetto.",
       "missing_count": "-> Trovato {count} pacchetti mancanti da installare.",
       "installing_title": "Installazione dei pacchetti di sistema e delle dipendenze...",
@@ -1054,7 +1054,7 @@
     "deploy": {
       "configuring_sddm": "Configurazione del display manager SDDM in corso...",
       "disabling_dm": "-> Disattivazione del display manager in conflitto: {dm}",
-      "sddm_success": "-> Materiale SDDM Tema installato, servizio abilitato [OK]"
+      "sddm_success": "-> Materiale SDDM tema installato, servizio abilitato [OK]"
     }
   },
   "translator": {

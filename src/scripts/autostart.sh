@@ -43,9 +43,6 @@ fi
 
 _config_ensure_settings
 
-STATUS_DIR="${QS_RUN_DIR:-${XDG_RUNTIME_DIR:-/tmp}/serpantinum}/autostart"
-mkdir -p "$STATUS_DIR" 2>/dev/null || true
-
 is_enabled="$(jq -r 'if .autostart and (.autostart.enabled != null) then .autostart.enabled else true end' "$CONFIG_SETTINGS_JSON" 2>/dev/null)"
 if [ "$is_enabled" = "false" ]; then
     [ "$VERBOSE" = true ] && echo "[autostart] Autostart is disabled in settings."
@@ -101,12 +98,6 @@ check_condition() {
     esac
 }
 
-write_status() {
-    local id="$1" st="$2" code="$3"
-    printf '{"status":"%s","exitCode":%d,"timestamp":%d,"pid":%d}\n' \
-        "$st" "$code" "$(date +%s)" "$$" > "$STATUS_DIR/${id}.json" 2>/dev/null || true
-}
-
 run_task() {
     local id="$1" exec_cmd="$2" restart="$3" ws="$4" silent="$5"
     local final_cmd="$exec_cmd"
@@ -119,30 +110,19 @@ run_task() {
         final_cmd="hyprctl dispatch 'hl.dsp.exec_cmd(\"$rules $exec_cmd\")' 2>/dev/null || hyprctl dispatch exec \"$rules $exec_cmd\""
     fi
 
-    write_status "$id" "running" 0
-
     if [ "$restart" = "true" ]; then
         while true; do
-            write_status "$id" "running" 0
-            eval "$final_cmd" > "$STATUS_DIR/${id}.log" 2>&1
+            eval "$final_cmd" >/dev/null 2>&1
             local exit_code=$?
             if [ $exit_code -eq 0 ]; then
-                write_status "$id" "success" 0
                 break
             else
-                write_status "$id" "failed" "$exit_code"
                 [ "$VERBOSE" = true ] && echo "[autostart] Task '$id' crashed with exit code $exit_code, restarting in 2s..."
                 sleep 2
             fi
         done
     else
-        eval "$final_cmd" > "$STATUS_DIR/${id}.log" 2>&1
-        local exit_code=$?
-        if [ $exit_code -eq 0 ]; then
-            write_status "$id" "success" 0
-        else
-            write_status "$id" "failed" "$exit_code"
-        fi
+        eval "$final_cmd" >/dev/null 2>&1
     fi
 }
 
@@ -167,13 +147,11 @@ for ((i = 0; i < entries_count; i++)); do
     entry_condition="$(printf '%s' "$entry" | jq -r '.condition // "always"')"
     entry_restart="$(printf '%s' "$entry" | jq -r '.restartOnCrash // false')"
 
-    # Validate numeric parameters
     [[ "$entry_delay" =~ ^[0-9]+$ ]] || entry_delay=0
     [[ "$entry_count" =~ ^[0-9]+$ ]] || entry_count=1
     [[ "$entry_repeat_delay" =~ ^[0-9]+$ ]] || entry_repeat_delay=0
     (( entry_count < 1 )) && entry_count=1
 
-    # Check power / monitor execution condition
     if ! check_condition "$entry_condition"; then
         [ "$VERBOSE" = true ] && echo "[autostart] Skipping '$entry_name' ($entry_id): condition '$entry_condition' not met."
         continue

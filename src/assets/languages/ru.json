@@ -108,9 +108,9 @@
       },
       "respect_inhibitors": {
         "title": "Учитывать ингибиторы приложений",
-        "desc": "Соблюдать блокировки бездействия Wayland от приложений"
+        "desc": "Соблюдать блокировки бездействия wayland от приложений"
       },
-      "pipeline_notice": "Порядок: Затемнение экрана < Блокировка сессии < Выключение экрана < Ждущий режим. Действия, нарушающие этот порядок, исключаются.",
+      "pipeline_notice": "Порядок: Затемнение экрана < блокировка сессии < выключение экрана < ждущий режим. Действия, нарушающие этот порядок, исключаются.",
       "order_violation": "Исключено",
       "actions_header": {
         "title": "Объекты тайм-аута бездействия",
@@ -123,7 +123,7 @@
       "warning_command": {
         "title": "Команда предупреждения",
         "desc": "Смещение и команда, выполняемая перед действием",
-        "placeholder": "напр. notify-send 'Предупреждение'"
+        "placeholder": "напр. notify-send 'предупреждение'"
       },
       "before_command": {
         "title": "Команда перед действием",
@@ -133,7 +133,7 @@
       "resume_command": {
         "title": "Команда возобновления",
         "desc": "Выполняется при возобновлении активности",
-        "placeholder": "напр. notify-send 'Возобновлено'"
+        "placeholder": "напр. notify-send 'возобновлено'"
       },
       "dim": {
         "title": "Затемнение экрана",
@@ -248,7 +248,7 @@
     },
     "bar": {
       "modules": {
-        "vis": "Визуализатор (Cava)",
+        "vis": "Визуализатор (cava)",
         "actions": "Действия",
         "workspaces": "Рабочие пространства",
         "media": "Медиа",
@@ -260,8 +260,8 @@
         "battery": "Батарея",
         "focus": "Фокус",
         "sysmon": "Монитор системы",
-        "timedate": "Время/Дата",
-        "info": "Запись/Таймер",
+        "timedate": "Время/дата",
+        "info": "Запись/таймер",
         "weather": "Погода"
       },
       "position": {
@@ -320,7 +320,7 @@
     "theme": {
       "font": {
         "title": "Шрифт",
-        "desc": "Выберите шрифт по умолчанию для Serpantinum",
+        "desc": "Выберите шрифт по умолчанию для serpantinum",
         "select": "Выбрать..."
       },
       "radius": {
@@ -408,7 +408,7 @@
     },
     "wellbeing": {
       "desktop": "Рабочий стол",
-      "not_available": "Н/Д",
+      "not_available": "Н/д",
       "am": "AM",
       "pm": "PM",
       "today": "Сегодня",
@@ -463,10 +463,10 @@
       },
       "add_button": "Добавить приложение",
       "empty_title": "Нет приложений в автозапуске",
-      "empty_desc": "Нажмите «Добавить приложение», чтобы указать команды, бинарники, задержку и количество запусков.",
+      "empty_desc": "Нажмите «добавить приложение», чтобы указать команды, бинарники, задержку и количество запусков.",
       "name_label": "Название",
-      "name_placeholder": "например, Discord, EasyEffects, Скрипт",
-      "exec_label": "Команда / Исполняемый файл",
+      "name_placeholder": "например, discord, EasyEffects, скрипт",
+      "exec_label": "Команда / исполняемый файл",
       "exec_placeholder": "Путь к бинарнику или команда с флагами (например, discord --start-minimized)",
       "browse_file": "Выбрать файл",
       "delay_label": "Задержка",
@@ -495,7 +495,7 @@
       "no_log": "Лог пока пуст",
       "run_now": "Запустить сейчас",
       "delete": "Удалить",
-      "toggle": "Включить / Отключить"
+      "toggle": "Включить / отключить"
     }
   },
   "sysnotif": {
@@ -600,7 +600,7 @@
   "network": {
     "tabs": {
       "ethernet": "Ethernet",
-      "wifi": "Wi-Fi",
+      "wifi": "Wi-fi",
       "bluetooth": "Bluetooth"
     },
     "status": {
@@ -673,7 +673,7 @@
         }
       },
       "notification": {
-        "app_name": "Таймер Quickshell",
+        "app_name": "Таймер quickshell",
         "timer_finished_title": "Таймер завершён",
         "timer_finished_body": "Ваш таймер на {time} завершил работу.",
         "focus_complete_title": "Фокус завершён",
@@ -687,7 +687,7 @@
     }
   },
   "screenshot": {
-    "video_mode": "Нажмите «Запись» (портал управляет выбором области)",
+    "video_mode": "Нажмите «запись» (портал управляет выбором области)",
     "select_region": "Выберите область для захвата",
     "no_microphones": "Микрофоны не найдены (установите PulseAudio)",
     "qr_timeout": "Время ожидания сканирования истекло или произошла ошибка.",
@@ -837,7 +837,7 @@
     },
     "network": {
       "name": "Настройки сети",
-      "desc": "Управление Wi-Fi, Ethernet и сетевыми подключениями"
+      "desc": "Управление wi-fi, ethernet и сетевыми подключениями"
     },
     "volume": {
       "name": "Громкость и звук",
@@ -845,7 +845,7 @@
     },
     "guide": {
       "name": "Настройки",
-      "desc": "Настройки Serpantinum"
+      "desc": "Настройки serpantinum"
     },
     "calendar": {
       "name": "Календарь и часы",
@@ -887,7 +887,7 @@
   },
   "cli": {
     "usage": "Использование: serpantinum [команда] [опции...]",
-    "description": "Оболочка рабочего стола для композиторов Wayland.",
+    "description": "Оболочка рабочего стола для композиторов wayland.",
     "commands": "Команды:",
     "script_commands": "Команды скриптов:",
     "launch_desc": "Запуск автономных компонентов (start, widgetredactor)",
@@ -899,7 +899,7 @@
     "version_desc": "Показать информацию о версии и выйти",
     "help_desc": "Показать эту справку и выйти",
     "examples": "Примеры:",
-    "daemon_stopped": "Служба Serpantinum остановлена.",
+    "daemon_stopped": "Служба serpantinum остановлена.",
     "starting_daemon": "Служба не запущена. Запуск serpantinumd в фоновом режиме...",
     "error_missing_qml": "Ошибка: не указана цель для запуска.",
     "launch_usage": "Использование: serpantinum launch <start|widgetredactor> [аргументы...]",
@@ -915,7 +915,7 @@
       "target_widgetredactor": "Запустить интерфейс редактора виджетов рабочего стола"
     },
     "msg_help": {
-      "usage": "Использование: serpantinum msg <команда|рабочее_пространство> [аргументы...]",
+      "usage": "Использование: serpantinum msg <команда|рабочеепространство> [аргументы...]",
       "description": "Отправка сообщений разметки, рабочих пространств и управления окнами напрямую.",
       "available_commands": "Доступные сообщения:",
       "cmd_workspace": "Переключиться на рабочее пространство <номер> (добавьте 'move', чтобы переместить активное окно)",
@@ -949,7 +949,7 @@
     "launching": "Запуск службы serpantinum...",
     "cli": {
       "usage": "Использование: serpantinumd <команда> [опции...]",
-      "description": "Фоновая служба для оболочки рабочего стола Serpantinum.",
+      "description": "Фоновая служба для оболочки рабочего стола serpantinum.",
       "commands": "Команды:",
       "cmd_start": "Запустить службу и фоновые процессы",
       "cmd_stop": "Остановить работающую службу",
@@ -958,9 +958,9 @@
       "opt_verbose": "Включить подробный вывод логов",
       "opt_version": "Показать информацию о версии и выйти",
       "opt_help": "Показать эту справку и выйти",
-      "stopped": "Служба Serpantinum остановлена.",
-      "status_running": "Служба Serpantinum запущена (PID: {PID}).",
-      "status_stopped": "Служба Serpantinum не запущена.",
+      "stopped": "Служба serpantinum остановлена.",
+      "status_running": "Служба serpantinum запущена (PID: {PID}).",
+      "status_stopped": "Служба serpantinum не запущена.",
       "unknown_arg": "Неизвестный аргумент: {ARG}"
     }
   },
@@ -975,11 +975,11 @@
     },
     "os": {
       "error_root": "Ошибка: не запускайте этот скрипт от root/sudo. Запустите от обычного пользователя.",
-      "error_unsupported": "Неподдерживаемая ОС ({os}). Serpantinum поддерживает только Arch Linux и его производные.",
+      "error_unsupported": "Неподдерживаемая ОС ({os}). Serpantinum поддерживает только arch linux и его производные.",
       "error_not_found": "Не удалось определить ОС. /etc/os-release не найден.",
       "unknown_cpu": "Неизвестный процессор",
       "unknown_gpu": "Неизвестно / виртуальная машина",
-      "default_os": "Arch Linux"
+      "default_os": "Arch linux"
     },
     "ui": {
       "user": "Пользователь:",
@@ -995,7 +995,7 @@
       "donate": "Поддержать:",
       "donate_sub": "(Поддержите проект!)",
       "packages_prompt": " Пакеты > ",
-      "packages_header": " Нажмите Esc или Enter для возврата ",
+      "packages_header": " Нажмите esc или enter для возврата ",
       "package_missing": "{pkg} (отсутствует — будет установлен)",
       "package_installed": "{pkg} (установлен)",
       "compositors_title": "=== Выберите поддерживаемые композиторы ===",
@@ -1003,18 +1003,18 @@
       "not_installed": " (не установлен)",
       "done": "Готово",
       "compositors_prompt": " Настройка композитора > ",
-      "compositors_header": " Выберите поддерживаемые композиторы, затем нажмите «Готово» ",
+      "compositors_header": " Выберите поддерживаемые композиторы, затем нажмите «готово» ",
       "sddm_title": "=== Настройка дисплейного менеджера (SDDM) ===",
       "sddm_detected_active": "Обнаружен активный/включённый дисплейный менеджер: {dm}",
       "sddm_detected_none": "Обнаружен активный/включённый дисплейный менеджер: Нет",
-      "sddm_opt_install": "Установить и настроить SDDM (тема Material You)",
+      "sddm_opt_install": "Установить и настроить SDDM (тема material you)",
       "sddm_opt_disable": "Отключить и удалить '{dm}'",
-      "sddm_opt_wayland": "Принудительно использовать Wayland",
+      "sddm_opt_wayland": "Принудительно использовать wayland",
       "sddm_prompt": " Настройка SDDM > ",
-      "sddm_header": " Выберите параметры, затем нажмите «Готово» ",
-      "target_compositor_none": "Целевой композитор [Обязательно — не выбран]",
+      "sddm_header": " Выберите параметры, затем нажмите «готово» ",
+      "target_compositor_none": "Целевой композитор [обязательно — не выбран]",
       "target_compositor_selected": "Целевой композитор [{comps}]",
-      "target_compositor_req": "Целевой композитор ({label}) [Обязательно]",
+      "target_compositor_req": "Целевой композитор ({label}) [обязательно]",
       "target_compositor_label": "Целевой композитор ({comps})",
       "unsupported_compositor": "Неподдерживаемый композитор",
       "menu_overview": "Обзор установки пакетов ({count} основных пакетов)",
@@ -1026,7 +1026,7 @@
       "menu_install": "Установить",
       "menu_exit": "Выход",
       "main_menu_prompt": " Главное меню > ",
-      "main_menu_header": " Используйте стрелки для навигации, Enter для выбора ",
+      "main_menu_header": " Используйте стрелки для навигации, enter для выбора ",
       "error_no_compositor": "Перед продолжением необходимо выбрать хотя бы один поддерживаемый композитор.",
       "tagline": "Оболочка рабочего стола, созданная для вас",
       "support_creator": "Поддержать автора:",
@@ -1034,10 +1034,10 @@
       "installed_success": "✔ Serpantinum {ver} ({commit}) успешно установлен.",
       "failed_packages": "При установке следующих пакетов возникли ошибки:",
       "restart_prompt": "Перезапустите композитор или выполните 'serpantinumd start' для начала работы.",
-      "ask_reboot": "Перезагрузить систему сейчас? [y/N] "
+      "ask_reboot": "Перезагрузить систему сейчас? [y/n] "
     },
     "deps": {
-      "syncing": "Синхронизация и обновление системных пакетов (pacman -Syyu)...",
+      "syncing": "Синхронизация и обновление системных пакетов (pacman -syyu)...",
       "all_installed": "-> Все пакеты уже установлены! Пропуск этапа загрузки пакетов.",
       "missing_count": "-> Найдено {count} недостающих пакетов для установки.",
       "installing_title": "Установка системных пакетов и зависимостей...",
@@ -1048,7 +1048,7 @@
     "deploy": {
       "configuring_sddm": "Настройка дисплейного менеджера SDDM...",
       "disabling_dm": "-> Отключение конфликтующего дисплейного менеджера: {dm}",
-      "sddm_success": "-> Тема Material You для SDDM установлена, служба включена [ OK ]"
+      "sddm_success": "-> Тема material you для SDDM установлена, служба включена [ OK ]"
     }
   },
   "translator": {
