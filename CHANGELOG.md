@@ -1,6 +1,5 @@
 ### 2.0.3
 
-- feat: add an autostart tab into the guidepopup
 - feat: allow the launcher and the clipboard to close by clicking outside of their area- fix: make the draggable for changing sfx volume in the generaltab change the sound volume immidiatly on drag to allow the user to listen to how loud the sfx is directly
 - Remove update notifications in the abouttab for nixos as redundant and disable updater singleton for nixos
 - style: improve the appearing and disappearing animation for a volume/brightness osd when not attached to a bar)

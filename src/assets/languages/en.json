@@ -35,8 +35,7 @@
       "wellbeing": "Wellbeing",
       "tutorial": "Tutorial",
       "update": "Update",
-      "about": "About",
-      "autostart": "Autostart"
+      "about": "About"
     },
     "launcher": {
       "position": {
@@ -453,50 +452,7 @@
         "excluded_apps_desc": "Exclude apps from overall tracking going forward"
       }
     },
-    "update_available": "Update available",
-    "autostart": {
-      "title": "Autostart",
-      "desc": "Manage programs, binaries, and scripts launched automatically upon session start",
-      "master_switch": {
-        "title": "Enable autostart",
-        "desc": "Globally execute the configured startup application list on login"
-      },
-      "add_button": "Add application",
-      "empty_title": "No autostart applications",
-      "empty_desc": "Click 'add application' to specify commands, binaries, delays, and repetition counts.",
-      "name_label": "Name",
-      "name_placeholder": "e.g. Discord, EasyEffects, script",
-      "exec_label": "Executable command",
-      "exec_placeholder": "Binary path or name with flags (e.g. discord --start-minimized)",
-      "browse_file": "Browse file",
-      "delay_label": "Startup delay",
-      "delay_desc": "Time in seconds to wait before launching",
-      "delay_unit": "s",
-      "count_label": "Launch count",
-      "count_desc": "Number of instances to execute upon startup",
-      "repeat_delay_label": "Repeat interval",
-      "repeat_delay_desc": "Delay between repeated executions",
-      "workspace_label": "Workspace",
-      "workspace_default": "Default",
-      "silent_label": "Silent launch",
-      "silent_desc": "Do not steal focus when window opens",
-      "condition_label": "Launch condition",
-      "condition_always": "Always",
-      "condition_ac_only": "AC power only",
-      "condition_battery_only": "Battery only",
-      "condition_multi_monitor": "Multi-monitor only",
-      "restart_crash_label": "Keep-alive / watchdog",
-      "restart_crash_desc": "Automatically respawn process if it crashes",
-      "status_running": "Running",
-      "status_success": "Success",
-      "status_failed": "Failed",
-      "status_idle": "Idle",
-      "view_log": "Log",
-      "no_log": "Log is currently empty",
-      "run_now": "Run now",
-      "delete": "Delete",
-      "toggle": "Enable / disable"
-    }
+    "update_available": "Update available"
   },
   "sysnotif": {
     "battery": {
