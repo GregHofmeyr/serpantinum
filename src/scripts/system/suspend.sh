@@ -8,14 +8,22 @@ if [ -f "$LOCK_SCRIPT" ]; then
     sleep 0.5
 fi
 
-if command -v systemctl &>/dev/null && [[ -d /run/systemd/system ]]; then
-    systemctl suspend
-elif command -v loginctl &>/dev/null; then
-    loginctl suspend
-elif command -v dbus-send &>/dev/null; then
-    dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager.Suspend boolean:true 2>/dev/null
-elif command -v zzz &>/dev/null; then
-    zzz
-elif [ -w /sys/power/state ]; then
+if command -v systemctl &>/dev/null && [ -d /run/systemd/system ]; then
+    systemctl suspend && exit 0
+fi
+
+if command -v loginctl &>/dev/null; then
+    loginctl suspend && exit 0
+fi
+
+if command -v dbus-send &>/dev/null; then
+    dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager.Suspend boolean:true 2>/dev/null && exit 0
+fi
+
+if command -v zzz &>/dev/null; then
+    zzz && exit 0
+fi
+
+if [ -w /sys/power/state ]; then
     echo mem > /sys/power/state
 fi
