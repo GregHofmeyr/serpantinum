@@ -184,12 +184,16 @@ ThemeDir=/usr/share/sddm/themes
 [General]
 DisplayServer=wayland
 GreeterEnvironment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+InputMethod=
 EOF
     else
         cat <<EOF | sudo tee /etc/sddm.conf.d/10-material-you.conf > /dev/null
 [Theme]
 Current=material-you
 ThemeDir=/usr/share/sddm/themes
+
+[General]
+InputMethod=
 EOF
     fi
 
