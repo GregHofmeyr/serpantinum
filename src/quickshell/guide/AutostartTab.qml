@@ -510,6 +510,20 @@ Item {
                                         }
                                     }
                                 }
+				
+                                Toggle {
+                                    Layout.alignment: Qt.AlignVCenter
+                                    checked: entryCard.entryEnabled
+                                    accentColor: ThemeBackend.mauve
+                                    baseColor: ThemeBackend.surface1
+                                    handleColor: ThemeBackend.crust
+                                    handleOffColor: ThemeBackend.text
+                                    onToggled: function(val) {
+                                        entryCard.entryEnabled = val;
+                                        autostartTabRoot.flushEntry(index, "enabled", val);
+                                    }
+                                }
+
 
                                 IconButton {
                                     Layout.alignment: Qt.AlignVCenter
@@ -560,20 +574,7 @@ Item {
                                     }
                                 }
 
-                                Toggle {
-                                    Layout.alignment: Qt.AlignVCenter
-                                    checked: entryCard.entryEnabled
-                                    accentColor: ThemeBackend.mauve
-                                    baseColor: ThemeBackend.surface1
-                                    handleColor: ThemeBackend.crust
-                                    handleOffColor: ThemeBackend.text
-                                    onToggled: function(val) {
-                                        entryCard.entryEnabled = val;
-                                        autostartTabRoot.flushEntry(index, "enabled", val);
-                                    }
-                                }
-
-                                IconButton {
+				IconButton {
                                     Layout.alignment: Qt.AlignVCenter
                                     implicitWidth: rootObj.s(28)
                                     implicitHeight: rootObj.s(28)
