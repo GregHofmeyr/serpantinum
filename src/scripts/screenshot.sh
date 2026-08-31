@@ -326,7 +326,10 @@ if [ "$FULL_MODE" = true ] || [ -n "$GEOMETRY" ]; then
     fi
 
     if [ "$EDIT_MODE" = true ]; then
-        GSK_RENDERER=gl satty --filename "$TMP_SCREENSHOT" --output-filename "$FILENAME" --init-tool brush --copy-command "wl-copy --type image/png"
+        # GSK_RENDERER: upstream hardcodes `gl`, which cold-starts/hangs on NVIDIA (G16).
+        # `ngl` (GTK4 new GL renderer) avoids it; fall back to `cairo` (software) if a
+        # future driver regresses. — Greg fork patch (2026-08-31)
+        GSK_RENDERER=ngl satty --filename "$TMP_SCREENSHOT" --output-filename "$FILENAME" --init-tool brush --copy-command "wl-copy --type image/png"
     else
         cp "$TMP_SCREENSHOT" "$FILENAME"
     fi
