@@ -83,7 +83,7 @@ setup_sddm "$PROJECT_ROOT"
 install_wallpapers "$INSTALL_FULL_WALLPAPERS"
 
 WALLPAPER_DIR=$(get_wallpaper_dir)
-init_serpantinum_config "$PROJECT_ROOT" "$WALLPAPER_DIR"
+init_serpantinum_config "$PROJECT_ROOT" "$WALLPAPER_DIR" "$INSTALL_STATE" "$IS_REINSTALL"
 
 setup_services
 write_version_state "$TARGET_VERSION" "$TARGET_COMMIT" "$TELEMETRY_ID" "$ENABLE_TELEMETRY" "${SELECTED_COMPOSITORS[*]}"
