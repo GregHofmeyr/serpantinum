@@ -117,6 +117,17 @@ Item {
     readonly property int activeVol: activeNode && activeNode.audio ? Math.round(activeNode.audio.volume * 100) : 0
     readonly property bool activeMute: activeNode && activeNode.audio ? activeNode.audio.muted : false
 
+    // device list with the active/default device sorted to the top (apps left as-is)
+    readonly property var displayNodes: {
+        let base = activeTab === "outputs" ? Audio.outputs : (activeTab === "inputs" ? Audio.inputs : Audio.apps);
+        if (activeTab === "apps" || !base) return base;
+        let def = activeTab === "outputs" ? Audio.defaultSink : Audio.defaultSource;
+        if (!def) return base;
+        let rest = [];
+        for (let i = 0; i < base.length; i++) if (base[i] !== def) rest.push(base[i]);
+        return [def].concat(rest);
+    }
+
     readonly property string activeIcon: {
         if (!activeNode) return "󰓃";
         if (activeTab === "inputs") return "󰍬";
@@ -508,7 +519,7 @@ Item {
                             SpringAnimation { property: "y"; spring: 3; damping: 0.2; mass: 0.2 }
                         }
 
-                        model: window.activeTab === "outputs" ? Audio.outputs : (window.activeTab === "inputs" ? Audio.inputs : Audio.apps)
+                        model: window.displayNodes
 
                         Item {
                             width: contentList.width; height: contentList.height
@@ -656,6 +667,7 @@ Item {
                                         from: 0.0
                                         to: 100.0
                                         value: delegateRoot.nodeVol
+                                        wheelEnabled: false   // let scroll reach the list, not this slider
                                         backgroundColor: ThemeBackend.surface1
                                         accentColor: delegateRoot.nodeMute ? ThemeBackend.surface2 : window.tabColor
                                         gradColor1: delegateRoot.nodeMute ? ThemeBackend.surface2 : window.tabColor

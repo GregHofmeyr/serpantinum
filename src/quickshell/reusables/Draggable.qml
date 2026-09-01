@@ -34,6 +34,7 @@ Item {
     property real handleRadius: handleSize / 2
 
     property bool enabled: true
+    property bool wheelEnabled: true   // set false so scroll passes through to a parent list
     property bool isDragging: false
     property bool action_highlight: false
     property bool alwaysShowHandle: false
@@ -408,7 +409,7 @@ Item {
         }
 
         onWheel: wheel => {
-            if (!root.enabled) return;
+            if (!root.enabled || !root.wheelEnabled) { wheel.accepted = false; return; }
             wheelAccumulator += wheel.angleDelta.y;
             const threshold = 120;
             while (wheelAccumulator >= threshold) {
