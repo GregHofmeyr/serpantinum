@@ -37,31 +37,33 @@ Item {
         btRebuildDebounce.restart();
     }
 
+    // Show only trusted/known devices when the `bluetooth.trustedOnly` setting is on
+    // (default off = serp's behaviour). Keeps the untrusted-scan flood out of the list.
+    // — Greg fork patch.
+    function btTrustedOnly() {
+        try { return Boolean((Config.getSetting("bluetooth", {}) || {}).trustedOnly); }
+        catch (e) { return false; }
+    }
+    function btIsKnown(d) {
+        return !!d && (d.trusted || d.connected || d.paired || d.bonded);
+    }
+
     function updateBtDevicesSnapshot() {
-        let adapter = Bluetooth.defaultAdapter;
-        if (!adapter || !adapter.devices) {
-            window.btDevicesSnapshot = [];
-            return;
-        }
-        let devs = adapter.devices.values || adapter.devices;
-        let list = [];
-        let count = devs.length !== undefined ? devs.length : (devs.count !== undefined ? devs.count : 0);
-        for (let i = 0; i < count; i++) {
-            let d = devs[i] !== undefined ? devs[i] : (devs.get ? devs.get(i) : null);
-            if (d) list.push(d);
-        }
-        window.btDevicesSnapshot = list;
+        window.btDevicesSnapshot = window.getBtDevicesList();
     }
 
     function getBtDevicesList() {
         let adapter = Bluetooth.defaultAdapter;
         if (!adapter || !adapter.devices) return [];
         let devs = adapter.devices.values || adapter.devices;
+        let trustedOnly = window.btTrustedOnly();
         let list = [];
         let count = devs.length !== undefined ? devs.length : (devs.count !== undefined ? devs.count : 0);
         for (let i = 0; i < count; i++) {
             let d = devs[i] !== undefined ? devs[i] : (devs.get ? devs.get(i) : null);
-            if (d) list.push(d);
+            if (!d) continue;
+            if (trustedOnly && !window.btIsKnown(d)) continue;
+            list.push(d);
         }
         return list;
     }
