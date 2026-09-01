@@ -73,6 +73,13 @@ function getWidgetLauncherEntries(i18n) {
             description: tr("widgets.docker.desc", "Live container dashboard and lifecycle control"),
             icon: "docker",
             fontIcon: "󰡨"
+        },
+        {
+            id: "connections",
+            name: tr("widgets.connections.name", "Connections"),
+            description: tr("widgets.connections.desc", "Cloudflare WARP and KDE Connect phone hub"),
+            icon: "preferences-system-network",
+            fontIcon: "󰛳"
         }
     ];
 }
@@ -156,6 +163,15 @@ function getLayout(name, mx, my, mw, mh, userScale, barPosition) {
         },
         "docker": {
             w: 700, h: 640, comp: "docker/DockerPanel.qml",
+            pos: {
+                "top": { anchor: "top-center", mt: 52 },
+                "bottom": { anchor: "bottom-center", mb: 52 },
+                "left": { anchor: "top-center", mt: 12 },
+                "right": { anchor: "top-center", mt: 12 }
+            }
+        },
+        "connections": {
+            w: 470, h: 620, comp: "connections/ConnectionsPanel.qml",
             pos: {
                 "top": { anchor: "top-center", mt: 52 },
                 "bottom": { anchor: "bottom-center", mb: 52 },

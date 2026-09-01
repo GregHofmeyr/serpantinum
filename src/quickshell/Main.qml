@@ -239,7 +239,7 @@ PanelWindow {
 
     property var widgetCache: ({})
     property var componentCache: ({})
-    property var _allWidgetNames: ["battery", "network", "volume", "guide", "calendar", "wallpaper", "music", "movies", "notifications", "system", "docker"]
+    property var _allWidgetNames: ["battery", "network", "volume", "guide", "calendar", "wallpaper", "music", "movies", "notifications", "system", "docker", "connections"]
     property int _preloadIndex: 0
 
     function widgetNameForItem(item) {
