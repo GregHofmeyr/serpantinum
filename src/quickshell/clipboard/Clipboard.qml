@@ -6,6 +6,7 @@ import QtQuick.Shapes
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import Quickshell.Io
 import "../"
 import "../reusables"
@@ -21,9 +22,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
 
-    mask: Region {
-        item: (clipboardWindow.isVisible || container.animProgress > 0.001) ? maskBoundary : null
-    }
+    mask: Region { item: topBarHole; intersection: Intersection.Xor }
 
     anchors {
         top: true
@@ -56,6 +55,18 @@ PanelWindow {
         return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({});
     }
     property string barPosition: (rawBarSettings && rawBarSettings.position !== undefined) ? rawBarSettings.position : "top"
+    property bool barAutohide: (rawBarSettings && rawBarSettings.autohide !== undefined) ? Boolean(rawBarSettings.autohide) : false
+
+    readonly property bool isFullscreenActive: {
+        try {
+            if (typeof Hyprland !== "undefined" && Hyprland.focusedWorkspace) {
+                return Boolean(Hyprland.focusedWorkspace.hasFullscreen || (Hyprland.activeToplevel && Hyprland.activeToplevel.fullscreen));
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    readonly property bool isBarEffectivelyHidden: barAutohide || isFullscreenActive
 
     property string attachEdge: {
         if (barPosition === "bottom") return "top";
@@ -429,6 +440,40 @@ PanelWindow {
         copyClip(item.id, item.pinned);
     }
 
+    Item {
+        id: topBarHole
+
+        property int barThickness: 48
+        property string bp: clipboardWindow.barPosition
+        property bool activeBar: !clipboardWindow.isBarEffectivelyHidden
+
+        x: {
+            if (!activeBar) return 0;
+            if (bp === "left") return 0;
+            if (bp === "right") return clipboardWindow.width - barThickness;
+            return 0;
+        }
+
+        y: {
+            if (!activeBar) return 0;
+            if (bp === "top") return 0;
+            if (bp === "bottom") return clipboardWindow.height - barThickness;
+            return 0;
+        }
+
+        width: {
+            if (!activeBar) return 0;
+            if (bp === "left" || bp === "right") return barThickness;
+            return clipboardWindow.width;
+        }
+
+        height: {
+            if (!activeBar) return 0;
+            if (bp === "top" || bp === "bottom") return barThickness;
+            return clipboardWindow.height;
+        }
+    }
+
     Timer {
         id: focusTimer
         interval: 30
@@ -490,19 +535,16 @@ PanelWindow {
 
     MouseArea {
         anchors.fill: parent
+        enabled: clipboardWindow.isVisible
         onClicked: closeClipboard()
     }
 
     Item {
-        id: maskBoundary
-        x: container.x - clipboardWindow.outerCornerRadius
-        y: container.y - clipboardWindow.outerCornerRadius
-        width: container.width + (clipboardWindow.outerCornerRadius * 2)
-        height: container.height + (clipboardWindow.outerCornerRadius * 2)
-    }
-
-    Item {
         id: container
+
+        MouseArea {
+            anchors.fill: parent
+        }
 
         property real animProgress: clipboardWindow.isVisible ? 1.0 : 0.0
         Behavior on animProgress {

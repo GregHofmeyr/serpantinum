@@ -57,24 +57,38 @@ install_wallpapers() {
 
     mkdir -p "$wallpaper_dir"
 
+    local sync_success=false
+    if [ -d "$clone_dir/.git" ]; then
+        if git -C "$clone_dir" fetch --depth 1 origin 2>/dev/null; then
+            if git -C "$clone_dir" reset --hard FETCH_HEAD 2>/dev/null || \
+               git -C "$clone_dir" reset --hard origin/HEAD 2>/dev/null || \
+               git -C "$clone_dir" reset --hard origin/main 2>/dev/null || \
+               git -C "$clone_dir" reset --hard origin/master 2>/dev/null; then
+                sync_success=true
+            fi
+        fi
+    fi
+
+    if [ "$sync_success" != true ]; then
+        rm -rf "$clone_dir"
+        echo -e "\n\e[36m[ INFO ]\e[0m Cloning wallpapers repository..."
+        git clone --depth 1 "$wallpaper_repo" "$clone_dir" 2>/dev/null || true
+    fi
+
+    local src_dir="$clone_dir"
+    if [ -d "$clone_dir/images" ]; then
+        src_dir="$clone_dir/images"
+    fi
+
+    if [ ! -d "$src_dir" ]; then
+        return 0
+    fi
+
     if [ "$full_pack" = true ]; then
-        if [ -d "$clone_dir/.git" ]; then
-            git -C "$clone_dir" fetch --depth 1 origin 2>/dev/null || git -C "$clone_dir" fetch origin 2>/dev/null || true
-            git -C "$clone_dir" reset --hard origin/HEAD 2>/dev/null || git -C "$clone_dir" reset --hard origin/main 2>/dev/null || git -C "$clone_dir" reset --hard origin/master 2>/dev/null || true
-        else
-            rm -rf "$clone_dir"
-            git clone --depth 1 "$wallpaper_repo" "$clone_dir" 2>/dev/null || true
-        fi
-
-        local src_dir="$clone_dir"
-        if [ -d "$clone_dir/images" ]; then
-            src_dir="$clone_dir/images"
-        fi
-
         local files=()
         while IFS= read -r f; do
             [[ -n "$f" ]] && files+=("$f")
-        done < <(find "$src_dir" -maxdepth 1 -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.webp" \) 2>/dev/null)
+        done < <(find "$src_dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.webp" \) 2>/dev/null)
 
         local total=${#files[@]}
         local count=0
@@ -87,54 +101,26 @@ install_wallpapers() {
             done
             echo ""
         else
-            if [ -d "$src_dir" ]; then
-                cp -r "$src_dir/." "$wallpaper_dir/" 2>/dev/null || true
-                rm -f "$wallpaper_dir/README.md" "$wallpaper_dir/LICENSE" 2>/dev/null || true
-                rm -rf "$wallpaper_dir/.git" 2>/dev/null || true
-            fi
+            find "$src_dir" -type f ! -name "README.md" ! -name "LICENSE" ! -path "*/.git/*" -exec cp {} "$wallpaper_dir/" \; 2>/dev/null || true
         fi
     else
         if [ -z "$(ls -A "$wallpaper_dir" 2>/dev/null | grep -iE '\.(jpg|jpeg|png|gif|webp)$')" ]; then
-            if [ -d "$clone_dir/.git" ]; then
-                git -C "$clone_dir" fetch --depth 1 origin 2>/dev/null || git -C "$clone_dir" fetch origin 2>/dev/null || true
-                git -C "$clone_dir" reset --hard origin/HEAD 2>/dev/null || git -C "$clone_dir" reset --hard origin/main 2>/dev/null || git -C "$clone_dir" reset --hard origin/master 2>/dev/null || true
-            else
-                rm -rf "$clone_dir"
-                mkdir -p "$clone_dir"
-                (
-                    cd "$clone_dir" || exit 0
-                    git init -q
-                    git remote add origin "$wallpaper_repo"
-                    git fetch --depth 1 --filter=blob:none origin HEAD -q 2>/dev/null || true
-                )
+            local random_pics=()
+            while IFS= read -r pic; do
+                [[ -n "$pic" ]] && random_pics+=("$pic")
+            done < <(find "$src_dir" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.gif" -o -iname "*.webp" \) 2>/dev/null | shuf -n 3)
+
+            local total=${#random_pics[@]}
+            local count=0
+
+            if [ "$total" -gt 0 ]; then
+                for pic in "${random_pics[@]}"; do
+                    cp "$pic" "$wallpaper_dir/" 2>/dev/null || true
+                    count=$((count + 1))
+                    render_wallpaper_progress "$count" "$total" "Installing wallpapers"
+                done
+                echo ""
             fi
-            (
-                cd "$clone_dir" || exit 0
-                local random_pics=()
-                while IFS= read -r pic; do
-                    [[ -n "$pic" ]] && random_pics+=("$pic")
-                done < <(git ls-tree -r HEAD --name-only 2>/dev/null | grep -iE '\.(jpg|jpeg|png|gif|webp)$' | shuf -n 3)
-
-                if [ ${#random_pics[@]} -eq 0 ]; then
-                    while IFS= read -r pic; do
-                        [[ -n "$pic" ]] && random_pics+=("$pic")
-                    done < <(git ls-tree -r FETCH_HEAD --name-only 2>/dev/null | grep -iE '\.(jpg|jpeg|png|gif|webp)$' | shuf -n 3)
-                fi
-
-                local total=${#random_pics[@]}
-                local count=0
-
-                if [ "$total" -gt 0 ]; then
-                    for pic in "${random_pics[@]}"; do
-                        local filename
-                        filename=$(basename "$pic")
-                        git show HEAD:"$pic" > "$wallpaper_dir/$filename" 2>/dev/null || git show FETCH_HEAD:"$pic" > "$wallpaper_dir/$filename" 2>/dev/null || true
-                        count=$((count + 1))
-                        render_wallpaper_progress "$count" "$total" "Installing wallpapers"
-                    done
-                    echo ""
-                fi
-            )
         fi
     fi
 }
@@ -198,12 +184,16 @@ ThemeDir=/usr/share/sddm/themes
 [General]
 DisplayServer=wayland
 GreeterEnvironment=QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+InputMethod=
 EOF
     else
         cat <<EOF | sudo tee /etc/sddm.conf.d/10-material-you.conf > /dev/null
 [Theme]
 Current=material-you
 ThemeDir=/usr/share/sddm/themes
+
+[General]
+InputMethod=
 EOF
     fi
 

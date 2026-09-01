@@ -5,6 +5,7 @@ import QtQuick.Controls
 import QtQuick.Shapes
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 import Quickshell.Io
 import "../"
 import "../reusables"
@@ -21,9 +22,7 @@ PanelWindow {
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
 
-    mask: Region {
-        item: (launcherWindow.isVisible || container.animProgress > 0.001) ? maskBoundary : null
-    }
+    mask: Region { item: topBarHole; intersection: Intersection.Xor }
 
     anchors {
         top: true
@@ -106,6 +105,11 @@ PanelWindow {
         executeFilter(searchInput.text);
     }
 
+    property var rawBarSettings: {
+        let dummy = configRevision;
+        return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({});
+    }
+
     property string barStyle: {
         let dummy = configRevision;
         if (typeof Config === "undefined" || !Config.rawSettings || !Config.rawSettings.bar) return "modular";
@@ -123,6 +127,19 @@ PanelWindow {
         if (typeof Config === "undefined" || !Config.rawSettings || !Config.rawSettings.bar) return "top";
         return Config.rawSettings.bar.position || "top";
     }
+
+    property bool barAutohide: (rawBarSettings && rawBarSettings.autohide !== undefined) ? Boolean(rawBarSettings.autohide) : false
+
+    readonly property bool isFullscreenActive: {
+        try {
+            if (typeof Hyprland !== "undefined" && Hyprland.focusedWorkspace) {
+                return Boolean(Hyprland.focusedWorkspace.hasFullscreen || (Hyprland.activeToplevel && Hyprland.activeToplevel.fullscreen));
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    readonly property bool isBarEffectivelyHidden: barAutohide || isFullscreenActive
 
     property real barHeight: {
         let dummy = configRevision;
@@ -583,21 +600,52 @@ PanelWindow {
         closeLauncher();
     }
 
+    Item {
+        id: topBarHole
+
+        property int barThickness: 48
+        property string bp: launcherWindow.barPosition
+        property bool activeBar: !launcherWindow.isBarEffectivelyHidden
+
+        x: {
+            if (!activeBar) return 0;
+            if (bp === "left") return 0;
+            if (bp === "right") return launcherWindow.width - barThickness;
+            return 0;
+        }
+
+        y: {
+            if (!activeBar) return 0;
+            if (bp === "top") return 0;
+            if (bp === "bottom") return launcherWindow.height - barThickness;
+            return 0;
+        }
+
+        width: {
+            if (!activeBar) return 0;
+            if (bp === "left" || bp === "right") return barThickness;
+            return launcherWindow.width;
+        }
+
+        height: {
+            if (!activeBar) return 0;
+            if (bp === "top" || bp === "bottom") return barThickness;
+            return launcherWindow.height;
+        }
+    }
+
     MouseArea {
         anchors.fill: parent
+        enabled: launcherWindow.isVisible
         onClicked: closeLauncher()
     }
 
     Item {
-        id: maskBoundary
-        x: container.x - launcherWindow.outerCornerRadius
-        y: container.y - launcherWindow.outerCornerRadius
-        width: container.width + (launcherWindow.outerCornerRadius * 2)
-        height: container.height + (launcherWindow.outerCornerRadius * 2)
-    }
-
-    Item {
         id: container
+
+        MouseArea {
+            anchors.fill: parent
+        }
 
         property real animProgress: launcherWindow.isVisible ? 1.0 : 0.0
         Behavior on animProgress {

@@ -428,13 +428,17 @@ Item {
             let raw = root.from + pct * (root.to - root.from);
             let newVal = root.clampVal(root.snapVal(raw));
 
-            if (root.stepSize > 0 && newVal !== root._lastStepValue) {
+            let changed = (root.stepSize > 0 && newVal !== root._lastStepValue);
+            if (changed) {
                 root._lastStepValue = newVal;
-                root.playTickThrottled(0.5);
             }
 
             root.dragPreview = newVal;
             root.moved(newVal);
+
+            if (changed) {
+                root.playTickThrottled(0.5);
+            }
         }
     }
 }

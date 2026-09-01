@@ -111,7 +111,7 @@ If you prefer installing the package directly without the system module:
 
       bar = {
         position = "top";
-        style = "islands";
+        style = "solid";
         width = 40;
         workspaceCount = 10;
         modules = {

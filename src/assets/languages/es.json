@@ -35,7 +35,8 @@
       "wellbeing": "Bienestar",
       "tutorial": "Tutorial",
       "update": "Actualizaciones",
-      "about": "Acerca de"
+      "about": "Acerca de",
+      "autostart": "Inicio automático"
     },
     "launcher": {
       "position": {
@@ -59,9 +60,9 @@
         "desc": "Prefijo de comando usado para ejecuciones con > (ej. kitty -e, alacritty -e, foot -e)"
       },
       "smart_ranking": {
-	"title": "Ordenación inteligente de elementos en el lanzador",
-	"desc": "Ordenar aplicaciones según su uso y el tiempo que se pasa en ellas"
-      },			
+        "title": "Ordenación inteligente de elementos en el lanzador",
+        "desc": "Ordenar aplicaciones según su uso y el tiempo que se pasa en ellas"
+      },
       "test": "Abrir lanzador"
     },
     "notifications": {
@@ -86,6 +87,10 @@
       "sound_file": {
         "title": "Efecto de sonido",
         "desc": "Selecciona el sonido para alertas entrantes"
+      },
+      "empty_graphic": {
+        "title": "Animación de centro vacío",
+        "desc": "Mostrar el gráfico del gato durmiendo en el centro de notificaciones cuando esté vacío"
       }
     },
     "idle": {
@@ -103,7 +108,7 @@
       },
       "respect_inhibitors": {
         "title": "Respetar inhibidores de aplicaciones",
-        "desc": "Respetar bloqueos de inactividad de Wayland provenientes de aplicaciones"
+        "desc": "Respetar bloqueos de inactividad de wayland provenientes de aplicaciones"
       },
       "pipeline_notice": "Orden: Atenuar pantalla < bloquear sesión < apagar pantalla < suspender. Las acciones que violen este orden serán excluidas.",
       "order_violation": "Excluido",
@@ -118,7 +123,7 @@
       "warning_command": {
         "title": "Comando de advertencia",
         "desc": "Desfase y comando a ejecutar antes de la acción",
-        "placeholder": "ej. notify-send 'Advertencia'"
+        "placeholder": "ej. notify-send 'advertencia'"
       },
       "before_command": {
         "title": "Comando previo",
@@ -128,7 +133,7 @@
       "resume_command": {
         "title": "Comando de reanudación",
         "desc": "Se ejecuta cuando se reanuda la actividad del usuario",
-        "placeholder": "ej. notify-send 'Reanudado'"
+        "placeholder": "ej. notify-send 'reanudado'"
       },
       "dim": {
         "title": "Atenuar pantalla",
@@ -243,7 +248,7 @@
     },
     "bar": {
       "modules": {
-        "vis": "Visualizador (Cava)",
+        "vis": "Visualizador (cava)",
         "actions": "Acciones",
         "workspaces": "Espacios de trabajo",
         "media": "Multimedia",
@@ -255,8 +260,8 @@
         "battery": "Batería",
         "focus": "Foco",
         "sysmon": "Monitor del sistema",
-        "timedate": "Hora/Fecha",
-        "info": "Grabación/Temporizador",
+        "timedate": "Hora/fecha",
+        "info": "Grabación/temporizador",
         "weather": "Clima"
       },
       "position": {
@@ -315,7 +320,7 @@
     "theme": {
       "font": {
         "title": "Fuente",
-        "desc": "Elegir la fuente predeterminada usada por Serpantinum",
+        "desc": "Elegir la fuente predeterminada usada por serpantinum",
         "select": "Seleccionar..."
       },
       "radius": {
@@ -403,7 +408,7 @@
     },
     "wellbeing": {
       "desktop": "Escritorio",
-      "not_available": "N/D",
+      "not_available": "N/d",
       "am": "AM",
       "pm": "PM",
       "today": "Hoy",
@@ -448,7 +453,50 @@
         "excluded_apps_desc": "Excluir aplicaciones del seguimiento general de ahora en adelante"
       }
     },
-    "update_available": "Actualización disponible"
+    "update_available": "Actualización disponible",
+    "autostart": {
+      "title": "Inicio automático",
+      "desc": "Administrar programas, binarios y scripts que se inician automáticamente al iniciar la sesión",
+      "master_switch": {
+        "title": "Habilitar inicio automático",
+        "desc": "Ejecutar globalmente la lista de aplicaciones de inicio configuradas al iniciar sesión"
+      },
+      "add_button": "Añadir aplicación",
+      "empty_title": "Sin aplicaciones de inicio",
+      "empty_desc": "Haga clic en 'añadir aplicación' para especificar comandos, binarios, retrasos y recuentos de repetición.",
+      "name_label": "Nombre",
+      "name_placeholder": "p. ej., Discord, EasyEffects, script",
+      "exec_label": "Comando ejecutable",
+      "exec_placeholder": "Ruta al binario o nombre con flags (p. ej., discord --start-minimized)",
+      "browse_file": "Explorar archivo",
+      "delay_label": "Retraso de inicio",
+      "delay_desc": "Tiempo de espera en segundos antes de iniciar",
+      "delay_unit": "s",
+      "count_label": "Número de ejecuciones",
+      "count_desc": "Número de instancias a ejecutar al inicio",
+      "repeat_delay_label": "Intervalo de repetición",
+      "repeat_delay_desc": "Retraso entre ejecuciones repetidas",
+      "workspace_label": "Espacio de trabajo",
+      "workspace_default": "Predeterminado",
+      "silent_label": "Inicio silencioso",
+      "silent_desc": "Abrir ventana en segundo plano sin robar el foco",
+      "condition_label": "Condición de inicio",
+      "condition_always": "Siempre",
+      "condition_ac_only": "Solo con corriente",
+      "condition_battery_only": "Solo con batería",
+      "condition_multi_monitor": "Solo con múltiples monitores",
+      "restart_crash_label": "Reinicio tras fallo",
+      "restart_crash_desc": "Reiniciar servicio automáticamente en caso de error",
+      "status_running": "En ejecución",
+      "status_success": "Completado",
+      "status_failed": "Error",
+      "status_idle": "Inactivo",
+      "view_log": "Registro",
+      "no_log": "El registro está vacío",
+      "run_now": "Ejecutar ahora",
+      "delete": "Eliminar",
+      "toggle": "Activar / desactivar"
+    }
   },
   "sysnotif": {
     "battery": {
@@ -552,7 +600,7 @@
   "network": {
     "tabs": {
       "ethernet": "Ethernet",
-      "wifi": "Wi-Fi",
+      "wifi": "Wi-fi",
       "bluetooth": "Bluetooth"
     },
     "status": {
@@ -625,7 +673,7 @@
         }
       },
       "notification": {
-        "app_name": "Temporizador Quickshell",
+        "app_name": "Temporizador quickshell",
         "timer_finished_title": "Temporizador finalizado",
         "timer_finished_body": "Tu temporizador de {time} ha finalizado.",
         "focus_complete_title": "Enfoque completado",
@@ -639,7 +687,7 @@
     }
   },
   "screenshot": {
-    "video_mode": "Haz clic en «Grabar» (el portal gestiona la selección de área)",
+    "video_mode": "Haz clic en «grabar» (el portal gestiona la selección de área)",
     "select_region": "Seleccionar región para capturar",
     "no_microphones": "Sin micrófonos (instalar PulseAudio)",
     "qr_timeout": "El escaneo caducó o falló.",
@@ -789,7 +837,7 @@
     },
     "network": {
       "name": "Ajustes de red",
-      "desc": "Administra conexiones Wi-Fi, Ethernet y de red"
+      "desc": "Administra conexiones wi-fi, ethernet y de red"
     },
     "volume": {
       "name": "Volumen y audio",
@@ -797,7 +845,7 @@
     },
     "guide": {
       "name": "Configuración",
-      "desc": "Configuración de Serpantinum"
+      "desc": "Configuración de serpantinum"
     },
     "calendar": {
       "name": "Calendario y reloj",
@@ -833,13 +881,13 @@
       "round": "Redondo",
       "compact": "Compacto",
       "rect": "Rectangular",
-      "minimal": "Minimalista",			
+      "minimal": "Minimalista",
       "rounded": "Redondeado"
     }
   },
   "cli": {
     "usage": "Uso: serpantinum [comando] [opciones...]",
-    "description": "Un entorno de escritorio para compositores de Wayland.",
+    "description": "Un entorno de escritorio para compositores de wayland.",
     "commands": "Comandos:",
     "script_commands": "Comandos de scripts:",
     "launch_desc": "Lanzar componentes independientes (start, widgetredactor)",
@@ -851,7 +899,7 @@
     "version_desc": "Mostrar información de versión y salir",
     "help_desc": "Mostrar este mensaje de ayuda y salir",
     "examples": "Ejemplos:",
-    "daemon_stopped": "Demonio de Serpantinum detenido.",
+    "daemon_stopped": "Demonio de serpantinum detenido.",
     "starting_daemon": "El demonio no está en ejecución. Iniciando serpantinumd en segundo plano...",
     "error_missing_qml": "Error: falta el destino a ejecutar.",
     "launch_usage": "Uso: serpantinum launch <start|widgetredactor> [argumentos...]",
@@ -867,7 +915,7 @@
       "target_widgetredactor": "Lanzar el editor de widgets de escritorio"
     },
     "msg_help": {
-      "usage": "Uso: serpantinum msg <comando|espacio_de_trabajo> [argumentos...]",
+      "usage": "Uso: serpantinum msg <comando|espaciodetrabajo> [argumentos...]",
       "description": "Enviar mensajes de diseño, espacios de trabajo y gestión de ventanas directamente.",
       "available_commands": "Mensajes disponibles:",
       "cmd_workspace": "Cambiar al espacio de trabajo <num> (añadir 'move' para mover la ventana activa)",
@@ -891,7 +939,8 @@
       "current_focus": "Monitorear y registrar cambios de enfoque de la ventana activa",
       "monitors_detect": "Consultar salidas de pantalla activas y frecuencias de actualización",
       "location_manual": "Establecer coordenadas geográficas y zona horaria manualmente",
-      "blue_light_filter": "Ajustar la temperatura de color y el horario automático día/noche"
+      "blue_light_filter": "Ajustar la temperatura de color y el horario automático día/noche",
+      "translate": "Traducción instantánea de texto y selecciones"
     }
   },
   "daemon": {
@@ -900,7 +949,7 @@
     "launching": "Iniciando el demonio de serpantinum...",
     "cli": {
       "usage": "Uso: serpantinumd <comando> [opciones...]",
-      "description": "Servicio demonio en segundo plano para el entorno de escritorio Serpantinum.",
+      "description": "Servicio demonio en segundo plano para el entorno de escritorio serpantinum.",
       "commands": "Comandos:",
       "cmd_start": "Iniciar el servicio demonio y los procesos en segundo plano",
       "cmd_stop": "Detener el servicio demonio en ejecución",
@@ -909,9 +958,9 @@
       "opt_verbose": "Habilitar registro detallado (verbose)",
       "opt_version": "Mostrar información de versión y salir",
       "opt_help": "Mostrar este mensaje de ayuda y salir",
-      "stopped": "Demonio de Serpantinum detenido.",
-      "status_running": "El demonio de Serpantinum está en ejecución (PID: {PID}).",
-      "status_stopped": "El demonio de Serpantinum no está en ejecución.",
+      "stopped": "Demonio de serpantinum detenido.",
+      "status_running": "El demonio de serpantinum está en ejecución (PID: {PID}).",
+      "status_stopped": "El demonio de serpantinum no está en ejecución.",
       "unknown_arg": "Argumento desconocido: {ARG}"
     }
   },
@@ -926,11 +975,11 @@
     },
     "os": {
       "error_root": "Error: No ejecutes este script directamente con root/sudo. Ejecútalo como usuario normal.",
-      "error_unsupported": "SO no compatible ({os}). Serpantinum solo es compatible con Arch Linux y sus derivados.",
+      "error_unsupported": "SO no compatible ({os}). Serpantinum solo es compatible con arch linux y sus derivados.",
       "error_not_found": "No se puede detectar el SO. /etc/os-release no encontrado.",
       "unknown_cpu": "CPU desconocida",
-      "unknown_gpu": "Desconocida / Máquina virtual",
-      "default_os": "Arch Linux"
+      "unknown_gpu": "Desconocida / máquina virtual",
+      "default_os": "Arch linux"
     },
     "ui": {
       "user": "Usuario:",
@@ -946,7 +995,7 @@
       "donate": "Donar:",
       "donate_sub": "(¡Apoya el proyecto!)",
       "packages_prompt": " Paquetes > ",
-      "packages_header": " Presiona Esc o Enter para volver ",
+      "packages_header": " Presiona esc o enter para volver ",
       "package_missing": "{pkg} (faltante - se instalará)",
       "package_installed": "{pkg} (instalado)",
       "compositors_title": "=== Seleccionar compositores objetivo ===",
@@ -954,18 +1003,18 @@
       "not_installed": " (no instalado)",
       "done": "Listo",
       "compositors_prompt": " Configuración de compositores > ",
-      "compositors_header": " Alterna los compositores compatibles y luego selecciona Listo ",
+      "compositors_header": " Alterna los compositores compatibles y luego selecciona listo ",
       "sddm_title": "=== Configuración del gestor de pantalla (SDDM) ===",
       "sddm_detected_active": "Gestor de pantalla activo/habilitado detectado: {dm}",
       "sddm_detected_none": "Gestor de pantalla activo/habilitado detectado: Ninguno",
-      "sddm_opt_install": "Instalar y configurar SDDM (tema Material You)",
+      "sddm_opt_install": "Instalar y configurar SDDM (tema material you)",
       "sddm_opt_disable": "Deshabilitar y eliminar '{dm}'",
-      "sddm_opt_wayland": "Forzar backend Wayland",
+      "sddm_opt_wayland": "Forzar backend wayland",
       "sddm_prompt": " Configuración de SDDM > ",
-      "sddm_header": " Alterna las opciones y luego selecciona Listo ",
-      "target_compositor_none": "Compositor objetivo [Requerido - ninguno seleccionado]",
+      "sddm_header": " Alterna las opciones y luego selecciona listo ",
+      "target_compositor_none": "Compositor objetivo [requerido - ninguno seleccionado]",
       "target_compositor_selected": "Compositor objetivo [{comps}]",
-      "target_compositor_req": "Compositor objetivo ({label}) [Requerido]",
+      "target_compositor_req": "Compositor objetivo ({label}) [requerido]",
       "target_compositor_label": "Compositor objetivo ({comps})",
       "unsupported_compositor": "Compositor no compatible",
       "menu_overview": "Resumen de instalación de paquetes ({count} paquetes esenciales)",
@@ -977,7 +1026,7 @@
       "menu_install": "Instalar",
       "menu_exit": "Salir",
       "main_menu_prompt": " Menú principal > ",
-      "main_menu_header": " Usa las flechas para navegar, Enter para seleccionar ",
+      "main_menu_header": " Usa las flechas para navegar, enter para seleccionar ",
       "error_no_compositor": "Debes elegir al menos un compositor compatible antes de continuar.",
       "tagline": "Un entorno de escritorio creado para ti",
       "support_creator": "Apoya al creador:",
@@ -985,10 +1034,10 @@
       "installed_success": "✔ Serpantinum {ver} ({commit}) instalado con éxito.",
       "failed_packages": "Los siguientes paquetes encontraron errores durante la instalación:",
       "restart_prompt": "Reinicia tu compositor o ejecuta 'serpantinumd start' para comenzar.",
-      "ask_reboot": "¿Deseas reiniciar? [y/N] "
+      "ask_reboot": "¿Deseas reiniciar? [y/n] "
     },
     "deps": {
-      "syncing": "Sincronizando y actualizando paquetes del sistema (pacman -Syyu)...",
+      "syncing": "Sincronizando y actualizando paquetes del sistema (pacman -syyu)...",
       "all_installed": "-> ¡Todos los paquetes ya están instalados! Omitiendo descarga de paquetes.",
       "missing_count": "-> Se encontraron {count} paquetes faltantes para instalar.",
       "installing_title": "Instalando paquetes del sistema y dependencias...",
@@ -999,7 +1048,27 @@
     "deploy": {
       "configuring_sddm": "Configurando el gestor de pantalla SDDM...",
       "disabling_dm": "-> Deshabilitando gestor de pantalla en conflicto: {dm}",
-      "sddm_success": "-> Tema Material You para SDDM instalado y servicio habilitado [ OK ]"
+      "sddm_success": "-> Tema material you para SDDM instalado y servicio habilitado [ OK ]"
     }
+  },
+  "translator": {
+    "title": "Traductor",
+    "status_translating": "Traduciendo...",
+    "speed": "Velocidad: ",
+    "detected": "Detectado: ",
+    "input_label": "Texto original",
+    "placeholder": "Escribe, pega o dicta texto aquí...",
+    "chars": "caracteres",
+    "translation_label": "Traducción",
+    "empty_prompt": "La traducción aparecerá aquí al instante...",
+    "recent": "Recientes:",
+    "failed": "Traducción no disponible",
+    "quick_settings": "Ajustes de reemplazo rápido",
+    "replace_settings_title": "Reemplazo rápido de selección",
+    "replace_settings_desc": "Traduce el texto seleccionado y lo reemplaza al instante",
+    "auto_paste": "Pegar texto traducido automáticamente",
+    "auto_paste_sub": "Si está desactivado — solo se copia al portapapeles",
+    "keep_clipboard": "Guardar traducción en el portapapeles",
+    "keep_clipboard_sub": "Si está desactivado — se restaura el portapapeles original"
   }
 }

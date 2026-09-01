@@ -124,11 +124,11 @@ Item {
     Process {
         id: hibernateCheck
         running: false
-        command: ["dbus-send", "--system", "--print-reply", "--dest=org.freedesktop.login1", "/org/freedesktop/login1", "org.freedesktop.login1.Manager.CanHibernate"]
+        command: ["bash", Caching.serpantinumDir + "/scripts/system/can_hibernate.sh"]
         stdout: StdioCollector {
             onStreamFinished: {
                 let out = this.text.trim();
-                root.canHibernate = out.includes("yes") || out.includes("challenge");
+                root.canHibernate = (out === "yes");
             }
         }
     }
@@ -398,7 +398,7 @@ Item {
     Rectangle {
         id: sidebarPanel
         anchors.fill: parent
-        color: Qt.rgba(ThemeBackend.base.r, ThemeBackend.base.g, ThemeBackend.base.base, 0.97)
+        color: Qt.rgba(ThemeBackend.base.r, ThemeBackend.base.g, ThemeBackend.base.b, 0.97)
         radius: Math.min(ThemeBackend.borderRadius, root.s(28))
         border.width: 0
         clip: true
@@ -505,7 +505,7 @@ Item {
                                 interval: 150
                                 onTriggered: {
                                     closeSequence.start();
-                                    Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/exit.sh"]);
+                                    Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/system/exit.sh"]);
                                     Quickshell.execDetached(["sh", "-c", "echo 'close' > " + Caching.runDir + "/widget_state"]);
                                 }
                             }
@@ -1144,14 +1144,8 @@ Item {
                                         Sounds.stopSfx(actionCapsule.chargingSoundHandle);
                                         actionCapsule.chargingSoundHandle = -1;
                                     }
-                                    let finalCmd = cmd;
-                                    if (cmd === "lock") finalCmd = "bash " + Caching.serpantinumDir + "/scripts/lock.sh";
-                                    else if (cmd === "sleep") finalCmd = "bash " + Caching.serpantinumDir + "/scripts/lock.sh & systemctl suspend";
-                                    else if (cmd === "hibernate") finalCmd = "dbus-send --system --print-reply --dest=org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager.Hibernate boolean:true";
-                                    else if (cmd === "reboot") finalCmd = "systemctl reboot";
-                                    else if (cmd === "poweroff") finalCmd = "systemctl poweroff -i";
-
-                                    Quickshell.execDetached(["sh", "-c", finalCmd]);
+                                    let scriptPath = cmd === "lock" ? Caching.serpantinumDir + "/scripts/lock.sh" : Caching.serpantinumDir + "/scripts/system/" + (cmd === "sleep" ? "suspend.sh" : cmd + ".sh");
+                                    Quickshell.execDetached(["bash", scriptPath]);
                                     Quickshell.execDetached(["sh", "-c", "echo 'close' > " + Caching.runDir + "/widget_state"]);
 
                                     actionCapsule.fillLevel = 0.0;

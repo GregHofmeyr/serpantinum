@@ -8,7 +8,6 @@ Rectangle {
     width: Screen.width
     height: Screen.height
 
-    // Background
     Image {
         anchors.fill: parent
         source: "bg.png"
@@ -20,18 +19,31 @@ Rectangle {
     property int sessionIndex: (typeof sessionModel !== "undefined" && sessionModel.lastIndex >= 0) ? sessionModel.lastIndex : 0
     property int userIndex: (typeof userModel !== "undefined" && userModel.lastIndex >= 0) ? userModel.lastIndex : 0
     
-    // UI States
     property real ui1: 0
     property real ui2: 0
     property string errorMessage: ""
 
-    // Fonts
     FontLoader {
         id: customFont
         source: "font/GoogleSans-VariableFont_GRAD,opsz,wght.ttf"
     }
     
     readonly property string sansFont: customFont.name !== "" ? customFont.name : "Roboto, Inter, sans-serif"
+
+    function syncModel() {
+        let str = pwd.text;
+        let minLen = Math.min(str.length, charModel.count);
+        let matchLen = 0;
+        while (matchLen < minLen && str[matchLen] === charModel.get(matchLen).char) {
+            matchLen++;
+        }
+        while (charModel.count > matchLen) {
+            charModel.remove(charModel.count - 1);
+        }
+        for (let i = matchLen; i < str.length; i++) {
+            charModel.append({ char: str[i] });
+        }
+    }
 
     ListView {
         id: sessionHelper
@@ -72,6 +84,7 @@ Rectangle {
         function onLoginFailed() {
             root.errorMessage = "ACCESS DENIED";
             pwd.text = "";
+            charModel.clear();
             shakeAnim.start();
             errTimer.start();
         }
@@ -113,7 +126,6 @@ Rectangle {
         onClicked: pwd.forceActiveFocus()
     }
 
-    // Layout Row
     Row {
         id: mainLayout
         anchors.centerIn: parent
@@ -122,7 +134,6 @@ Rectangle {
         scale: 0.96 + (0.04 * root.ui1)
         transform: Translate { y: (1 - root.ui1) * 30 * s }
 
-        // Left Section
         Column {
             spacing: 24 * s
             anchors.verticalCenter: parent.verticalCenter
@@ -139,7 +150,6 @@ Rectangle {
                 }
             }
 
-            // Clock
             Column {
                 spacing: -24 * s
                 
@@ -162,7 +172,6 @@ Rectangle {
                 }
             }
 
-            // Date Pill
             Rectangle {
                 width: dateChipText.implicitWidth + 32 * s
                 height: 44 * s
@@ -182,12 +191,10 @@ Rectangle {
             }
         }
 
-        // Right Section
         Column {
             spacing: 24 * s
             anchors.verticalCenter: parent.verticalCenter
 
-            // Settings Title
             Text {
                 text: "QUICK SETTINGS"
                 font.family: root.sansFont
@@ -197,12 +204,10 @@ Rectangle {
                 color: "#8ca090"
             }
 
-            // Settings Grid
             Grid {
                 columns: 2
                 spacing: 16 * s
                 
-                // Power
                 Rectangle {
                     id: powerTile
                     width: 180 * s; height: 76 * s; radius: 38 * s
@@ -270,7 +275,6 @@ Rectangle {
                     }
                 }
                 
-                // Session
                 Rectangle {
                     id: sessionTile
                     width: 180 * s; height: 76 * s; radius: 38 * s
@@ -344,7 +348,6 @@ Rectangle {
                     }
                 }
 
-                // Reboot
                 Rectangle {
                     id: rebootTile
                     width: 180 * s; height: 76 * s; radius: 38 * s
@@ -412,7 +415,6 @@ Rectangle {
                     }
                 }
 
-                // Sleep
                 Rectangle {
                     id: suspendTile
                     width: 180 * s; height: 76 * s; radius: 38 * s
@@ -481,7 +483,6 @@ Rectangle {
                 }
             }
 
-            // Login Card
             Rectangle {
                 id: notificationCard
                 width: 376 * s
@@ -495,7 +496,6 @@ Rectangle {
                     anchors.margins: 20 * s
                     spacing: 12 * s
                     
-                    // Header
                     Row {
                         width: parent.width
                         spacing: 8 * s
@@ -536,7 +536,6 @@ Rectangle {
                         }
                     }
 
-                    // Password Box
                     Rectangle {
                         width: parent.width
                         height: 52 * s
@@ -546,6 +545,141 @@ Rectangle {
                         border.width: pwd.activeFocus ? 2 * s : 0
                         Behavior on border.color { ColorAnimation { duration: 150 } }
                         
+                        ListModel {
+                            id: charModel
+                        }
+
+                        ListView {
+                            id: charRow
+                            anchors.centerIn: parent
+                            height: 12 * s
+                            orientation: ListView.Horizontal
+                            interactive: false
+                            boundsBehavior: Flickable.StopAtBounds
+                            spacing: 6 * s
+                            width: contentWidth
+                            model: charModel
+
+                            add: Transition {
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        property: "scale"
+                                        from: 0.60
+                                        to: 1.0
+                                        duration: 240
+                                        easing.type: Easing.OutBack
+                                        easing.overshoot: 1.35
+                                    }
+                                    NumberAnimation {
+                                        property: "y"
+                                        from: 3.5 * s
+                                        to: 0
+                                        duration: 220
+                                        easing.type: Easing.OutBack
+                                        easing.overshoot: 1.25
+                                    }
+                                    NumberAnimation {
+                                        property: "rotation"
+                                        from: -9
+                                        to: 0
+                                        duration: 220
+                                        easing.type: Easing.OutCubic
+                                    }
+                                    NumberAnimation {
+                                        property: "opacity"
+                                        from: 0
+                                        to: 1
+                                        duration: 150
+                                        easing.type: Easing.OutQuad
+                                    }
+                                }
+                            }
+
+                            remove: Transition {
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        property: "scale"
+                                        to: 0.0
+                                        duration: 130
+                                        easing.type: Easing.InCubic
+                                    }
+                                    NumberAnimation {
+                                        property: "y"
+                                        to: 2 * s
+                                        duration: 130
+                                        easing.type: Easing.InCubic
+                                    }
+                                    NumberAnimation {
+                                        property: "rotation"
+                                        to: 6
+                                        duration: 130
+                                        easing.type: Easing.InCubic
+                                    }
+                                    NumberAnimation {
+                                        property: "opacity"
+                                        to: 0
+                                        duration: 100
+                                        easing.type: Easing.InQuad
+                                    }
+                                }
+                            }
+
+                            displaced: Transition {
+                                NumberAnimation {
+                                    properties: "x,y"
+                                    duration: 160
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            delegate: Item {
+                                id: charSlot
+                                required property int index
+                                required property string char
+
+                                width: 12 * s
+                                height: 12 * s
+                                transformOrigin: Item.Center
+
+                                Rectangle {
+                                    id: charShape
+                                    anchors.centerIn: parent
+                                    width: 12 * s
+                                    height: 12 * s
+                                    radius: Math.round(width * 0.24)
+                                    color: "#1d3c34"
+                                    antialiasing: true
+
+                                    property real dotPop: 1.0
+                                    scale: dotPop
+
+                                    Component.onCompleted: {
+                                        dotPop = 0.82
+                                        dotPopAnim.restart()
+                                    }
+
+                                    SequentialAnimation {
+                                        id: dotPopAnim
+                                        NumberAnimation {
+                                            target: charShape
+                                            property: "dotPop"
+                                            to: 1.11
+                                            duration: 110
+                                            easing.type: Easing.OutBack
+                                            easing.overshoot: 1.25
+                                        }
+                                        NumberAnimation {
+                                            target: charShape
+                                            property: "dotPop"
+                                            to: 1.0
+                                            duration: 170
+                                            easing.type: Easing.OutCubic
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         TextInput {
                             id: pwd
                             anchors.fill: parent
@@ -553,21 +687,19 @@ Rectangle {
                             anchors.rightMargin: 20 * s
                             font.family: root.sansFont
                             font.pixelSize: 18 * s
-                            font.letterSpacing: 6 * s
-                            color: "#1d3c34"
-                            echoMode: TextInput.Password
-                            passwordCharacter: "•"
-                            horizontalAlignment: TextInput.AlignHCenter
-                            verticalAlignment: TextInput.AlignVCenter
-                            clip: true
-                            
+                            color: "transparent"
+                            selectionColor: "transparent"
+                            selectedTextColor: "transparent"
                             cursorVisible: false
                             cursorDelegate: Item { width: 0; height: 0 }
-                            selectionColor: "#c2ebd4"
+                            clip: true
+                            inputMethodHints: Qt.ImhHiddenText | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
                             
                             property bool wasClicked: false
                             onActiveFocusChanged: if (!activeFocus && text.length === 0) wasClicked = false
                             
+                            onTextChanged: root.syncModel()
+
                             Text {
                                 anchors.centerIn: parent
                                 text: root.errorMessage !== "" ? root.errorMessage : "PASSWORD REQUIRED"
@@ -578,24 +710,6 @@ Rectangle {
                                 color: root.errorMessage !== "" ? "#ea1821" : "#8ca090"
                                 opacity: pwd.text === "" && (!pwd.activeFocus || (!pwd.wasClicked && pwd.text.length === 0)) ? 1 : 0
                                 Behavior on opacity { NumberAnimation { duration: 150 } }
-                            }
-                            
-                            // Cursor
-                            Rectangle {
-                                id: customCursor
-                                width: 2 * s
-                                height: 18 * s
-                                color: "#1d3c34"
-                                anchors.verticalCenter: parent.verticalCenter
-                                x: pwd.cursorRectangle.x
-                                visible: pwd.activeFocus && (pwd.text.length > 0 || pwd.wasClicked) && root.errorMessage === ""
-                                
-                                SequentialAnimation {
-                                    loops: Animation.Infinite
-                                    running: customCursor.visible
-                                    NumberAnimation { target: customCursor; property: "opacity"; from: 1; to: 0; duration: 400; easing.type: Easing.InOutQuad }
-                                    NumberAnimation { target: customCursor; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.InOutQuad }
-                                }
                             }
                             
                             MouseArea {
@@ -616,12 +730,10 @@ Rectangle {
                         }
                     }
 
-                    // Bottom Row
                     Row {
                         width: parent.width
                         spacing: 12 * s
                         
-                        // User Switch
                         Rectangle {
                             width: userText.implicitWidth + 32 * s
                             height: 38 * s
@@ -655,7 +767,6 @@ Rectangle {
                             }
                         }
 
-                        // Unlock Pill
                         Item {
                             width: parent.width - (userText.implicitWidth + 32 * s) - 12 * s
                             height: 38 * s

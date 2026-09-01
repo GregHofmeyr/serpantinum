@@ -25,10 +25,7 @@
       "left": [
         "left",
         "workspaces",
-        [
-          "media",
-          "vis"
-        ]
+        "media" 
       ],
      "center": [
         [

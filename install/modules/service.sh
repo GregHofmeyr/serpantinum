@@ -62,7 +62,7 @@ disable_system_service() {
             sudo dinitctl disable "$svc" 2>/dev/null || true
             ;;
         runit)
-            if [ -L "/var/service/$svc" ] \vert{}\vert{} [ -d "/var/service/$svc" ]; then
+            if [ -L "/var/service/$svc" ] || [ -d "/var/service/$svc" ]; then
                 sudo rm -f "/var/service/$svc" 2>/dev/null || true
             fi
             ;;
@@ -82,10 +82,10 @@ enable_user_service() {
     case "$init_sys" in
         systemd)
             systemctl --user daemon-reload 2>/dev/null || true
-            systemctl --user enable --now "$svc.service" 2>/dev/null \vert{}\vert{} systemctl --user enable "$svc.service" 2>/dev/null || true
+            systemctl --user enable --now "$svc.service" 2>/dev/null || systemctl --user enable "$svc.service" 2>/dev/null || true
             ;;
         dinit)
-            dinitctl --user enable "$svc" 2>/dev/null \vert{}\vert{} dinitctl --user start "$svc" 2>/dev/null || true
+            dinitctl --user enable "$svc" 2>/dev/null || dinitctl --user start "$svc" 2>/dev/null || true
             ;;
         *)
             true
