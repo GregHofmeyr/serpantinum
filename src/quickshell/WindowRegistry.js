@@ -66,6 +66,13 @@ function getWidgetLauncherEntries(i18n) {
             description: tr("widgets.system.desc", "Performance monitor, power, and quick settings"),
             icon: "preferences-system",
             fontIcon: "󰒓"
+        },
+        {
+            id: "docker",
+            name: tr("widgets.docker.name", "Docker"),
+            description: tr("widgets.docker.desc", "Live container dashboard and lifecycle control"),
+            icon: "docker",
+            fontIcon: "󰡨"
         }
     ];
 }
@@ -147,8 +154,17 @@ function getLayout(name, mx, my, mw, mh, userScale, barPosition) {
                 "right": { anchor: "left" } 
             } 
         },
-        "hidden": { 
-            w: 1, h: 1, comp: "", 
+        "docker": {
+            w: 700, h: 640, comp: "docker/DockerPanel.qml",
+            pos: {
+                "top": { anchor: "top-center", mt: 52 },
+                "bottom": { anchor: "bottom-center", mb: 52 },
+                "left": { anchor: "top-center", mt: 12 },
+                "right": { anchor: "top-center", mt: 12 }
+            }
+        },
+        "hidden": {
+            w: 1, h: 1, comp: "",
             pos: { 
                 "top": { anchor: "hidden" }, 
                 "bottom": { anchor: "hidden" }, 
