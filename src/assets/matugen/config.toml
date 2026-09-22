@@ -13,6 +13,10 @@ output_path = "~/.config/fastfetch/config.jsonc"
 input_path = "templates/kitty-colors.conf.template"
 output_path = "~/.config/kitty/colors.conf"
 
+[templates.ghostty]
+input_path = "templates/ghostty-colors.template"
+output_path = "~/.config/ghostty/ghostty-colors"
+
 [templates.cava]
 input_path = "templates/cava-colors.ini.template"
 output_path = "~/.config/cava/config"
