@@ -207,7 +207,9 @@ PanelWindow {
         "width": 600,
         "itemCount": 6,
         "terminalCommand": "kitty -e",
-        "smartRanking": true
+        "smartRanking": true,
+        "editorCommand": "code",
+        "editorInTerminal": false
     })
 
     property var rawLauncherSettings: {
@@ -226,6 +228,13 @@ PanelWindow {
     property int customItemCount: (rawLauncherSettings && rawLauncherSettings.itemCount !== undefined && !isNaN(rawLauncherSettings.itemCount) && rawLauncherSettings.itemCount > 0) ? rawLauncherSettings.itemCount : 6
     property string terminalCommand: (rawLauncherSettings && rawLauncherSettings.terminalCommand !== undefined) ? rawLauncherSettings.terminalCommand : "kitty -e"
     property bool smartRanking: (rawLauncherSettings && rawLauncherSettings.smartRanking !== undefined) ? rawLauncherSettings.smartRanking : true
+    // Open-in-editor (Shift+Enter on a file/dir result). editorCommand falls back to
+    // $VISUAL/$EDITOR then "code"; set editorInTerminal + a terminal editor (e.g. "nvim")
+    // to launch inside terminalCommand. — Greg fork patch.
+    property string editorCommand: (rawLauncherSettings && rawLauncherSettings.editorCommand !== undefined && String(rawLauncherSettings.editorCommand).trim().length > 0)
+        ? String(rawLauncherSettings.editorCommand)
+        : (Quickshell.env("VISUAL") || Quickshell.env("EDITOR") || "code")
+    property bool editorInTerminal: (rawLauncherSettings && rawLauncherSettings.editorInTerminal !== undefined) ? Boolean(rawLauncherSettings.editorInTerminal) : false
 
     onSmartRankingChanged: {
         if (launcherWindow.isVisible) {
@@ -888,12 +897,33 @@ PanelWindow {
         applyModelItems(filtered);
     }
 
-    function activateIndex(index) {
+    // Build the argv to open a file/dir in the configured editor. Uses argv arrays
+    // (no shell) so paths with spaces need no quoting. — Greg fork patch.
+    function editorLaunchArgv(path) {
+        function tokens(s) {
+            return String(s || "").trim().split(/\s+/).filter(function(t) { return t.length > 0; });
+        }
+        let editorArgv = tokens(editorCommand);
+        if (editorArgv.length === 0) editorArgv = ["code"];
+        if (editorInTerminal) {
+            let termArgv = tokens(terminalCommand);
+            if (termArgv.length === 0) termArgv = ["kitty", "-e"];
+            return termArgv.concat(editorArgv).concat([path]);
+        }
+        return editorArgv.concat([path]);
+    }
+
+    function activateIndex(index, openInEditor) {
         if (index < 0 || index >= appModel.count) return;
         let item = appModel.get(index);
         if (!item) return;
 
         if (item.isFile) {
+            if (openInEditor) {
+                Quickshell.execDetached(editorLaunchArgv(item.filePath));
+                closeLauncher();
+                return;
+            }
             let script = "p=\"$1\"\n"
                 + "if [ -d \"$p\" ]; then\n"
                 + "  xdg-open \"$p\"\n"
@@ -1413,7 +1443,9 @@ PanelWindow {
                         event.accepted = true;
                     }
                     Keys.onReturnPressed: function(event) {
-                        activateIndex(appList.currentIndex);
+                        // Shift+Enter on a file/dir result → open in editor (Greg fork patch)
+                        let openInEditor = (event.modifiers & Qt.ShiftModifier) !== 0;
+                        activateIndex(appList.currentIndex, openInEditor);
                         event.accepted = true;
                     }
                     Keys.onEscapePressed: function(event) {
