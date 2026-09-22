@@ -16,11 +16,27 @@ PanelWindow {
     property real wWidth: 250
     property real wHeight: 120
     property real wOpacity: 1.0
+    property real wRotation: 0
+
+    property bool isRedacting: false
+    property bool initialized: false
 
     property real animX: wX
     property real animY: wY
-    Behavior on animX { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
-    Behavior on animY { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
+    Behavior on animX {
+        enabled: root.initialized && !root.isRedacting
+        NumberAnimation {
+            duration: 400
+            easing.type: Easing.OutCubic
+        }
+    }
+    Behavior on animY {
+        enabled: root.initialized && !root.isRedacting
+        NumberAnimation {
+            duration: 400
+            easing.type: Easing.OutCubic
+        }
+    }
 
     property real effectiveWidth: wWidth
     property real effectiveHeight: wHeight
@@ -42,8 +58,14 @@ PanelWindow {
     margins.left: animX
     margins.top: animY
 
-    implicitWidth: effectiveWidth
-    implicitHeight: effectiveHeight
+    implicitWidth: (Math.round(wRotation || 0) % 180 === 0) ? effectiveWidth : effectiveHeight
+    implicitHeight: (Math.round(wRotation || 0) % 180 === 0) ? effectiveHeight : effectiveWidth
+
+    Component.onCompleted: {
+        Qt.callLater(() => {
+            root.initialized = true;
+        });
+    }
 
     Component.onDestruction: visible = false
 
@@ -95,9 +117,13 @@ PanelWindow {
         property string imagePath: root.wImagePath
         property string path: root.wImagePath
         source: WidgetRegistry.faceFile(root.wType, root.wVariant)
-        anchors.fill: parent
+        width: root.effectiveWidth
+        height: root.effectiveHeight
+        anchors.centerIn: parent
+        rotation: root.wRotation || 0
         opacity: root.wOpacity
         Behavior on opacity { NumberAnimation { duration: 150 } }
+        Behavior on rotation { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
         onLoaded: {
             if (item) {
                 if (item.imagePath !== undefined) {

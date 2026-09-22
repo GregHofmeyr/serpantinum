@@ -36,7 +36,14 @@
       "tutorial": "Tutorial",
       "update": "Update",
       "about": "Über",
-      "autostart": "Autostart"
+      "autostart": "Autostart",
+      "display_widgets": "Widgets",
+      "display_general": "Allgemein",
+      "osd": "OSD",
+      "dock": "Dock",
+      "bar_general": "Allgemein",
+      "bar_modules": "Module",
+      "bar_side_modules": "Seitenmodule"
     },
     "launcher": {
       "position": {
@@ -45,7 +52,8 @@
         "top": "Oben",
         "bottom": "Unten",
         "left": "Links",
-        "right": "Rechts"
+        "right": "Rechts",
+        "center": "Mitte"
       },
       "width": {
         "title": "Starter-breite",
@@ -78,7 +86,9 @@
         "bottom_right": "Unten rechts",
         "bottom_left": "Unten links",
         "top_center": "Oben zentriert",
-        "bottom_center": "Unten zentriert"
+        "bottom_center": "Unten zentriert",
+        "select_on_screen": "Auf Bildschirm auswählen...",
+        "close_selector": "Auswahl schließen"
       },
       "sound": {
         "title": "Benachrichtigungston",
@@ -91,7 +101,9 @@
       "empty_graphic": {
         "title": "Animation für leere benachrichtigungen",
         "desc": "Zeigt die schlafende katze im benachrichtigungszentrum an, wenn keine vorhanden sind"
-      }
+      },
+      "test": "Benachrichtigung testen",
+      "test_desc": "Dies ist eine Testbenachrichtigung"
     },
     "idle": {
       "enabled": {
@@ -217,6 +229,10 @@
         "title": "Einstellungen kopieren",
         "desc": "Konfigurations-JSON in die zwischenablage kopieren",
         "button": "Einstellungen kopieren"
+      },
+      "screenshot_on_release": {
+        "title": "Bereich beim Loslassen der Maus erfassen",
+        "desc": "Erstellt den Screenshot sofort nach dem Ziehen, ohne auf den Auslöser zu klicken"
       }
     },
     "display": {
@@ -243,14 +259,36 @@
       "widgets": {
         "title": "Desktop-widgets",
         "desc": "Widgets für diesen monitor konfigurieren und platzieren",
-        "open": "Editor öffnen"
+        "open": "Editor öffnen",
+        "hide_bar": {
+          "title": "Leiste im Redaktor ausblenden",
+          "desc": "Die Leiste beim Bearbeiten von Widgets im Redaktormodus automatisch ausblenden"
+        },
+        "hide_presets": "Vorlagen verbergen",
+        "choose_preset": "Vorlage wählen",
+        "presets": {
+          "title": "Widget-Vorlagen"
+        },
+        "save_preset": {
+          "title": "Voreinstellung speichern"
+        },
+        "preset_name_placeholder": "Namen der Voreinstellung eingeben..."
       }
     },
     "bar": {
       "modules": {
         "vis": "Visualizer (cava)",
         "actions": "Aktionen",
-        "workspaces": "Arbeitsflächen",
+        "workspaces": {
+          "style": {
+            "name": {
+              "pills": "Pillen",
+              "numbers": "Zahlen",
+              "pacman": "Pacman"
+            }
+          },
+          "name": "Arbeitsbereiche"
+        },
         "media": "Medien",
         "tray": "Systemtray",
         "keyboard": "Tastatur",
@@ -260,7 +298,16 @@
         "battery": "Akku",
         "focus": "Fokus",
         "sysmon": "Systemmonitor",
-        "timedate": "Uhrzeit/datum",
+        "timedate": {
+          "name": "Zeit & Datum",
+          "style": {
+            "name": {
+              "classic": "Klassisch",
+              "material": "Material",
+              "badge": "Punktmatrix"
+            }
+          }
+        },
         "info": "Aufnahme/timer",
         "weather": "Wetter"
       },
@@ -278,7 +325,8 @@
       },
       "workspaces": {
         "title": "Anzahl anzuzeigender arbeitsflächen auswählen",
-        "disc": "Hinweis: Dies beeinflusst nicht die tatsächliche anzahl der arbeitsflächen im compositor"
+        "disc": "Hinweis: Dies beeinflusst nicht die tatsächliche anzahl der arbeitsflächen im compositor",
+        "desc": "Anzahl der anzuzeigenden Arbeitsflächen"
       },
       "opacity": {
         "title": "Leistentransparenz",
@@ -315,6 +363,16 @@
         "left": "Links",
         "center": "Mitte",
         "right": "Rechts"
+      },
+      "distinct_pills": {
+        "title": "Aktiviere einen modularen und kompakten Stil für Widgets",
+        "desc": "Verleiht den Modulen der Leiste einen umrandeten Rahmen und verkleinert sie für ein kompakteres, modulares Erscheinungsbild"
+      },
+      "timedate": {
+        "show_date": {
+          "title": "Datum anzeigen",
+          "desc": "Datumstext neben der Uhr anzeigen"
+        }
       }
     },
     "theme": {
@@ -496,6 +554,133 @@
       "run_now": "Jetzt starten",
       "delete": "Löschen",
       "toggle": "Aktivieren / deaktivieren"
+    },
+    "osd": {
+      "capslock": {
+        "title": "Bei Feststelltaste anzeigen"
+      },
+      "numlock": {
+        "title": "Bei Num-Taste anzeigen"
+      },
+      "airplane": {
+        "title": "Im Flugmodus anzeigen"
+      },
+      "attach_bar": {
+        "title": "An Leiste im Solid-/Fill-Stil anheften",
+        "desc": "OSD-Popups an die Leiste im Solid- oder Fill-Modus anheften. Bei Deaktivierung bleibt das OSD immer an der eingestellten Position."
+      },
+      "test": "OSD testen",
+      "position": {
+        "title": "Bildschirmposition des On-Screen Displays",
+        "desc": "Vorschaufeld ziehen, um die Position zu ändern",
+        "select_on_screen": "Auf Bildschirm auswählen...",
+        "close_selector": "Auswahl schließen",
+        "bottom_center": "Unten Mitte",
+        "bottom_left": "Unten Links",
+        "bottom_right": "Unten Rechts",
+        "top_center": "Oben Mitte",
+        "top_left": "Oben Links",
+        "top_right": "Oben Rechts"
+      },
+      "orientation": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertikal"
+      }
+    },
+    "common": {
+      "show_bar": "Leiste anzeigen",
+      "unavailable": "Nicht verfügbar"
+    },
+    "position": {
+      "custom": "Benutzerdefiniert"
+    },
+    "dock": {
+      "enabled": {
+        "title": "Dock aktivieren",
+        "desc": "Schwebendes anwendungs-dock aktivieren"
+      },
+      "position": {
+        "title": "Dock-position",
+        "desc": "Bildschirmkante zum verankern des docks auswählen",
+        "bottom": "Unten",
+        "top": "Oben",
+        "left": "Links",
+        "right": "Rechts"
+      },
+      "elements": {
+        "title": "Anzahl der elemente",
+        "desc": "Gesamtzahl der im dock angezeigten anwendungsverknüpfungen"
+      },
+      "size": {
+        "title": "Elementgröße",
+        "desc": "Abmessungen der einzelnen anwendungsschaltflächen in pixeln"
+      },
+      "autohide": {
+        "title": "Automatisch ausblenden",
+        "desc": "Dock ausblenden wenn der zeiger den bildschirmrand verlässt"
+      },
+      "timeout": {
+        "title": "Verzögerung beim automatischen ausblenden",
+        "desc": "Dauer vor dem ausblenden nachdem der zeiger den bereich verlässt"
+      },
+      "floating": {
+        "title": "Schwebendes Dock",
+        "desc": "Dock mit abgerundeten Ecken vom Bildschirmrand lösen"
+      },
+      "transparency": {
+        "title": "Dock-Transparenz",
+        "desc": "Deckkraft des Dock-Hintergrunds anpassen"
+      },
+      "apps": {
+        "title": "Dock-Anwendungen",
+        "singular": "App",
+        "plural": "Apps",
+        "shuffle": "Apps mischen",
+        "empty": "Keine Anwendungen für das Dock konfiguriert",
+        "enter_edit": "Bearbeitungsmodus aktivieren",
+        "exit_edit": "Bearbeitungsmodus beenden"
+      },
+      "picker": {
+        "search": "Apps durchsuchen...",
+        "done": "Fertig",
+        "empty": "Keine passenden Anwendungen"
+      },
+      "opacity": {
+        "title": "Dock-Deckkraft",
+        "desc": "Deckkraft des Dock-Hintergrunds anpassen"
+      },
+      "override_bounds": {
+        "title": "Größenkorrektur bei Bildschirmüberschreitung überschreiben",
+        "desc": "Benutzerdefinierte Elementgröße beibehalten, selbst wenn das Dock Bildschirmgrenzen überschreitet"
+      },
+      "scrolling": {
+        "title": "Element-Scrollen aktivieren",
+        "desc": "Sichtbare Elemente begrenzen und Scrollen per Mausrad oder Touchpad aktivieren"
+      },
+      "visible_elements": {
+        "title": "Sichtbare Elemente",
+        "desc": "Anzahl der gleichzeitig sichtbaren Dock-Elemente"
+      },
+      "hover_scale": {
+        "title": "Hover-Skalierungseffekt",
+        "desc": "Vergrößerungsstufe beim Bewegen der Maus über Dock-Elemente"
+      },
+      "cascade_scale": {
+        "title": "Benachbarte Elemente skalieren",
+        "desc": "Kaskadierende Vergrößerung benachbarter Symbole"
+      },
+      "exclusive": {
+        "title": "Exklusiver Modus",
+        "desc": "Fenster daran hindern, den Platz des Docks einzunehmen"
+      },
+      "on_top": {
+        "title": "Dock über Fenstern platzieren",
+        "desc": "Das Dock über Anwendungsfenstern sichtbar halten"
+      },
+      "smart_autohide": {
+        "title": "Intelligentes automatisches Ausblenden",
+        "desc": "Dock nur bei geöffneten Fenstern ausblenden, auf dem Desktop sichtbar lassen"
+      }
     }
   },
   "sysnotif": {
@@ -526,7 +711,10 @@
   },
   "applauncher": {
     "search": "Suchen",
-    "placeholder": "Mit > beginnen für befehle..."
+    "placeholder": "Mit > beginnen für befehle...",
+    "tab_applications": "Anwendungen",
+    "tab_files": "Dateien",
+    "placeholder_files": "Dateien suchen oder Pfad eingeben..."
   },
   "calendar": {
     "loading": "Laden...",
@@ -866,13 +1054,20 @@
     "redactor": {
       "no_widgets_active": "Keine widgets aktiv",
       "click_to_add": "Auf ein widget-symbol in der unteren leiste klicken, um es hinzuzufügen",
-      "done": "Fertig"
+      "done": "Fertig",
+      "widget_singular": "Widget",
+      "widgets_plural": "Widgets",
+      "widgets_short": "W"
     },
     "types": {
       "clock": "Uhr",
       "music": "Musik",
       "weather": "Wetter",
-      "image": "Bild"
+      "image": "Bild",
+      "visualizer": "Visualisierer",
+      "user": "Benutzer",
+      "usage": "Auslastung",
+      "battery": "Akku"
     },
     "variants": {
       "digital": "Digital",
@@ -882,7 +1077,27 @@
       "compact": "Kompakt",
       "minimal": "Minimalistisch",
       "rect": "Rechteckig",
-      "rounded": "Abgerundet"
+      "rounded": "Abgerundet",
+      "bars": "Balken",
+      "continuous": "Kontinuierlich",
+      "default": "Standard",
+      "material": "Material",
+      "materialAnalog": "Material analog",
+      "lumen": "Lumen"
+    },
+    "presets": {
+      "minimal": {
+        "name": "Minimal",
+        "desc": "Klares und dezentes Layout mit minimaler Digitaluhr und kompaktem Wetter."
+      },
+      "media_station": {
+        "name": "Medienstation",
+        "desc": "Dediziertes Medien-Setup mit zentriertem Audio-Visualisierer und rundem Musik-Player."
+      },
+      "dashboard": {
+        "name": "Dashboard",
+        "desc": "Umfassender Systemmonitor mit Digitaluhr, Hardware-Auslastung und Akkustand."
+      }
     }
   },
   "cli": {
@@ -1070,5 +1285,8 @@
     "auto_paste_sub": "Wenn deaktiviert — nur in die zwischenablage kopiert",
     "keep_clipboard": "In zwischenablage behalten",
     "keep_clipboard_sub": "Wenn deaktiviert — ursprüngliche zwischenablage wird wiederhergestellt"
+  },
+  "datetime": {
+    "full_date": "dddd, d. MMMM"
   }
 }

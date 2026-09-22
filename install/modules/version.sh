@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 
-STATE_DIR="$HOME/.local/state/serpantinum"
+MODULE_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+if [ -z "$SERPANTINUM_DIR" ]; then
+    if [ -d "$(dirname "$(dirname "$MODULE_DIR")")/src" ]; then
+        export SERPANTINUM_DIR="$(dirname "$(dirname "$MODULE_DIR")")/src"
+    fi
+fi
+
+if [ -n "$SERPANTINUM_DIR" ] && [ -f "$SERPANTINUM_DIR/scripts/caching.sh" ]; then
+    source "$SERPANTINUM_DIR/scripts/caching.sh"
+fi
+
+STATE_DIR="${QS_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/serpantinum}"
 VERSION_FILE="$STATE_DIR/version"
 DEFAULT_FALLBACK_VERSION="2.0.0"
 
@@ -51,9 +62,26 @@ get_telemetry_enabled() {
 }
 
 get_installed_version() {
+    local ver=""
     if [ -f "$VERSION_FILE" ]; then
-        awk -F= '/^SERPANTINUM_VERSION=/{gsub(/"/, "", $2); print $2}' "$VERSION_FILE"
+        ver=$(awk -F= '/^SERPANTINUM_VERSION=/{gsub(/"/, "", $2); print $2}' "$VERSION_FILE")
     fi
+    if [ -z "$ver" ] && [ -n "$SERPANTINUM_VERSION" ]; then
+        ver="$SERPANTINUM_VERSION"
+    fi
+    if [ -z "$ver" ]; then
+        if [ -n "$SERPANTINUM_DIR" ] && [ -f "$SERPANTINUM_DIR/version.txt" ]; then
+            ver=$(cat "$SERPANTINUM_DIR/version.txt" 2>/dev/null | xargs)
+        elif [ -n "$SERPANTINUM_DIR" ] && [ -f "$(dirname "$SERPANTINUM_DIR")/version.txt" ]; then
+            ver=$(cat "$(dirname "$SERPANTINUM_DIR")/version.txt" 2>/dev/null | xargs)
+        elif [ -n "$REPO_ROOT" ] && [ -f "$REPO_ROOT/version.txt" ]; then
+            ver=$(cat "$REPO_ROOT/version.txt" 2>/dev/null | xargs)
+        fi
+    fi
+    if [ -z "$ver" ]; then
+        ver="$DEFAULT_FALLBACK_VERSION"
+    fi
+    echo "$ver"
 }
 
 get_installed_commit() {

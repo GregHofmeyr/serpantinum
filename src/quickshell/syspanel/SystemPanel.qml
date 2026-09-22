@@ -11,11 +11,11 @@ import Quickshell.Services.UPower
 import Quickshell.Services.Pipewire
 import "../"
 import "../reusables"
-import "../notifications"
 
 Item {
     id: root
     focus: true
+    enabled: visible
 
     function s(val) {
         return Scaler.s(val);
@@ -29,6 +29,8 @@ Item {
     }
 
     readonly property bool isLeftAnchored: barPosition === "right"
+    readonly property real slideDistance: sidebarPanel.width > 0 ? sidebarPanel.width : root.s(420)
+    readonly property real rowSlideDistance: root.s(36)
 
     readonly property bool isDesktop: UPower.displayDevice.ready ? !UPower.displayDevice.isLaptopBattery : SystemInfo.isDesktop
 
@@ -89,6 +91,7 @@ Item {
 
     property bool isDraggingVol: false
     property bool isDraggingBri: false
+    property bool usesDdcBrightness: false
 
     property bool btStateBeforeAirplane: false
     property bool wifiStateBeforeAirplane: true
@@ -103,20 +106,25 @@ Item {
     }
 
     property real animCapacity: 0
-    Behavior on animCapacity { NumberAnimation { duration: 1200; easing.type: Easing.OutQuint } }
+    Behavior on animCapacity {
+        enabled: root.visible
+        NumberAnimation { duration: 1200; easing.type: Easing.OutQuint }
+    }
 
     onBatCapacityChanged: {
-        animCapacity = batCapacity;
+        if (root.visible) {
+            animCapacity = batCapacity;
+        }
     }
 
     onSysVolumeChanged: {
-        if (typeof volSlider !== "undefined" && volSlider && !root.isDraggingVol && volSlider.value !== sysVolume) {
+        if (root.visible && typeof volSlider !== "undefined" && volSlider && !root.isDraggingVol && volSlider.value !== sysVolume) {
             volSlider.value = sysVolume;
         }
     }
 
     onSysBrightnessChanged: {
-        if (typeof briSlider !== "undefined" && briSlider && !root.isDraggingBri && briSlider.value !== sysBrightness) {
+        if (root.visible && typeof briSlider !== "undefined" && briSlider && !root.isDraggingBri && briSlider.value !== sysBrightness) {
             briSlider.value = sysBrightness;
         }
     }
@@ -135,18 +143,20 @@ Item {
 
     property real introContent: 0.0
     property real introTop: 0.0
-    property real introCore: 0.0
     property real introSliders: 0.0
+    property real introQuickActions: 0.0
     property real introNotifs: 0.0
     property real introActions: 0.0
+    property real introCore: 0.0
 
     function resetAndPlayIntro() {
         introContent = 0.0;
         introTop = 0.0;
-        introCore = 0.0;
         introSliders = 0.0;
+        introQuickActions = 0.0;
         introNotifs = 0.0;
         introActions = 0.0;
+        introCore = 0.0;
         closeSequence.stop();
         startupSequence.restart();
     }
@@ -155,7 +165,6 @@ Item {
         NotificationManager.sysPanelOpen = visible;
         if (visible) {
             forceActiveFocus();
-            focusTimer.restart();
             resetAndPlayIntro();
 
             animCapacity = batCapacity;
@@ -167,29 +176,21 @@ Item {
                 volSlider.value = root.sysVolume;
             }
 
+            if (typeof briSlider !== "undefined" && briSlider && !root.isDraggingBri) {
+                briSlider.value = root.sysBrightness;
+            }
+
             if (nightLightBtn) nightLightBtn.updateState();
             if (coffeeBtn) coffeeBtn.updateState();
 
-            hibernateCheck.running = false;
-            hibernateCheck.running = true;
-
-            briPollerTimer.stop();
-            briPoller.running = false;
-            briPoller.running = true;
+            briPollerTimer.interval = 150;
+            briPollerTimer.restart();
         } else {
             briPollerTimer.stop();
             briPoller.running = false;
             startupSequence.stop();
             closeSequence.stop();
         }
-    }
-
-    Timer {
-        id: focusTimer
-        interval: 50
-        running: false
-        repeat: false
-        onTriggered: root.forceActiveFocus()
     }
 
     Timer {
@@ -207,14 +208,15 @@ Item {
     }
 
     Component.onCompleted: {
+        hibernateCheck.running = true;
         if (visible) {
             NotificationManager.sysPanelOpen = true;
             if (nightLightBtn) nightLightBtn.updateState();
             if (coffeeBtn) coffeeBtn.updateState();
             resetAndPlayIntro();
-            focusTimer.start();
-            briPoller.running = true;
-            hibernateCheck.running = true;
+            forceActiveFocus();
+            briPollerTimer.interval = 150;
+            briPollerTimer.restart();
             animCapacity = batCapacity;
         }
     }
@@ -226,16 +228,28 @@ Item {
 
     Timer {
         id: briPollerTimer
-        interval: 1500
+        interval: root.usesDdcBrightness ? 10000 : 1500
         repeat: false
         onTriggered: {
-            if (root.visible) briPoller.running = true;
+            if (root.visible) {
+                briPoller.running = true;
+                interval = root.usesDdcBrightness ? 10000 : 1500;
+            }
+        }
+    }
+
+    Process {
+        id: briBackend
+        command: ["bash", Caching.qsDir + "/../scripts/brightness.sh", "backend"]
+        running: true
+        stdout: StdioCollector {
+            onStreamFinished: root.usesDdcBrightness = this.text.trim() === "ddc"
         }
     }
 
     Process {
         id: briPoller
-        command: ["bash", "-c", "brightnessctl -m 2>/dev/null | awk -F, '{print substr($4, 1, length($4)-1)}'"]
+        command: ["bash", Caching.qsDir + "/../scripts/brightness.sh", "get"]
         running: false
         stdout: StdioCollector {
             onStreamFinished: {
@@ -250,39 +264,41 @@ Item {
 
     ParallelAnimation {
         id: startupSequence
-        NumberAnimation { target: root; property: "introContent"; to: 1.0; duration: 600; easing.type: Easing.OutQuart }
+        NumberAnimation { target: root; property: "introContent"; to: 1.0; duration: 320; easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "introTop"; from: 0; to: 1.0; duration: 320; easing.type: Easing.OutCubic }
 
         SequentialAnimation {
-            PauseAnimation { duration: 50 }
-            NumberAnimation { target: root; property: "introTop"; from: 0; to: 1.0; duration: 900; easing.type: Easing.OutExpo }
+            PauseAnimation { duration: 30 }
+            NumberAnimation { target: root; property: "introSliders"; from: 0; to: 1.0; duration: 320; easing.type: Easing.OutCubic }
         }
         SequentialAnimation {
-            PauseAnimation { duration: 100 }
-            NumberAnimation { target: root; property: "introSliders"; from: 0; to: 1.0; duration: 900; easing.type: Easing.OutExpo }
+            PauseAnimation { duration: 55 }
+            NumberAnimation { target: root; property: "introQuickActions"; from: 0; to: 1.0; duration: 320; easing.type: Easing.OutCubic }
         }
         SequentialAnimation {
-            PauseAnimation { duration: 150 }
-            NumberAnimation { target: root; property: "introNotifs"; from: 0; to: 1.0; duration: 900; easing.type: Easing.OutExpo }
+            PauseAnimation { duration: 80 }
+            NumberAnimation { target: root; property: "introNotifs"; from: 0; to: 1.0; duration: 330; easing.type: Easing.OutCubic }
         }
         SequentialAnimation {
-            PauseAnimation { duration: 200 }
-            NumberAnimation { target: root; property: "introActions"; from: 0; to: 1.0; duration: 900; easing.type: Easing.OutExpo }
+            PauseAnimation { duration: 105 }
+            NumberAnimation { target: root; property: "introActions"; from: 0; to: 1.0; duration: 330; easing.type: Easing.OutCubic }
         }
         SequentialAnimation {
-            PauseAnimation { duration: 250 }
-            NumberAnimation { target: root; property: "introCore"; from: 0; to: 1.0; duration: 900; easing.type: Easing.OutExpo }
+            PauseAnimation { duration: 130 }
+            NumberAnimation { target: root; property: "introCore"; from: 0; to: 1.0; duration: 340; easing.type: Easing.OutCubic }
         }
     }
 
     SequentialAnimation {
         id: closeSequence
         ParallelAnimation {
-            NumberAnimation { target: root; property: "introContent"; to: 0.0; duration: 500; easing.type: Easing.OutQuint }
-            NumberAnimation { target: root; property: "introTop"; to: 0.0; duration: 400; easing.type: Easing.OutQuint }
-            NumberAnimation { target: root; property: "introSliders"; to: 0.0; duration: 400; easing.type: Easing.OutQuint }
-            NumberAnimation { target: root; property: "introNotifs"; to: 0.0; duration: 400; easing.type: Easing.OutQuint }
-            NumberAnimation { target: root; property: "introActions"; to: 0.0; duration: 400; easing.type: Easing.OutQuint }
-            NumberAnimation { target: root; property: "introCore"; to: 0.0; duration: 400; easing.type: Easing.OutQuint }
+            NumberAnimation { target: root; property: "introContent"; to: 0.0; duration: 260; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introTop"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introSliders"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introQuickActions"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introNotifs"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introActions"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
+            NumberAnimation { target: root; property: "introCore"; to: 0.0; duration: 220; easing.type: Easing.InCubic }
         }
         ScriptAction {
             script: {
@@ -312,7 +328,10 @@ Item {
                 font.pixelSize: root.s(32)
                 color: bRoot.iconColor
                 text: root.isCharging ? "󰂄" : (root.batCapacity > 20 ? "󰁹" : "󰂃")
-                Behavior on color { ColorAnimation { duration: 400 } }
+                Behavior on color {
+                    enabled: root.visible
+                    ColorAnimation { duration: 400 }
+                }
                 Layout.alignment: Qt.AlignVCenter
             }
 
@@ -327,7 +346,10 @@ Item {
                     font.pixelSize: root.s(20)
                     color: bRoot.contentTextColor
                     text: Math.round(root.animCapacity) + "%"
-                    Behavior on color { ColorAnimation { duration: 400 } }
+                    Behavior on color {
+                        enabled: root.visible
+                        ColorAnimation { duration: 400 }
+                    }
                 }
 
                 Text {
@@ -346,7 +368,10 @@ Item {
                     font.pixelSize: root.s(10)
                     color: bRoot.contentTextColor === ThemeBackend.crust ? Qt.alpha(ThemeBackend.crust, 0.85) : (root.isCharging ? ThemeBackend.green : ThemeBackend.subtext0)
                     text: timeString
-                    Behavior on color { ColorAnimation { duration: 300 } }
+                    Behavior on color {
+                        enabled: root.visible
+                        ColorAnimation { duration: 300 }
+                    }
                 }
             }
 
@@ -368,10 +393,16 @@ Item {
         signal rightClicked()
 
         color: isActive ? activeColor : (qaMa.containsMouse ? ThemeBackend.surface1 : Qt.darker(ThemeBackend.surface0, 1.04))
-        Behavior on color { ColorAnimation { duration: 150 } }
+        Behavior on color {
+            enabled: root.visible
+            ColorAnimation { duration: 150 }
+        }
 
         scale: qaMa.pressed ? 0.95 : (qaMa.containsMouse ? 1.01 : 1.0)
-        Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutQuart } }
+        Behavior on scale {
+            enabled: root.visible
+            NumberAnimation { duration: 200; easing.type: Easing.OutQuart }
+        }
 
         Text {
             anchors.centerIn: parent
@@ -379,7 +410,10 @@ Item {
             font.pixelSize: root.s(22)
             color: qaBtn.isActive ? ThemeBackend.crust : (qaMa.containsMouse ? ThemeBackend.text : ThemeBackend.subtext0)
             text: qaBtn.iconText
-            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on color {
+                enabled: root.visible
+                ColorAnimation { duration: 150 }
+            }
         }
 
         MouseArea {
@@ -403,7 +437,7 @@ Item {
         border.width: 0
         clip: true
         opacity: root.introContent
-        transform: Translate { x: (root.isLeftAnchored ? -root.s(75) : root.s(75)) * (1.0 - root.introContent) }
+        transform: Translate { x: (root.isLeftAnchored ? -root.slideDistance : root.slideDistance) * (1.0 - root.introContent) }
 
         Rectangle {
             anchors.top: parent.top
@@ -417,7 +451,6 @@ Item {
 
         Item {
             anchors.fill: parent
-            scale: 0.96 + (0.04 * root.introContent)
 
             ColumnLayout {
                 anchors.fill: parent
@@ -431,12 +464,8 @@ Item {
                     Layout.maximumHeight: root.s(54)
                     radius: root.boxRadius
                     color: Qt.darker(ThemeBackend.surface0, 1.04)
-
                     opacity: root.introTop
-                    transform: [
-                        Translate { y: root.s(-20) * (1.0 - root.introTop) },
-                        Scale { origin.x: userBox.width / 2; origin.y: userBox.height / 2; xScale: 0.95 + (0.05 * root.introTop); yScale: 0.95 + (0.05 * root.introTop) }
-                    ]
+                    transform: Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introTop) }
 
                     RowLayout {
                         anchors.fill: parent
@@ -524,12 +553,8 @@ Item {
                     Layout.maximumHeight: slidersCol.implicitHeight + root.s(20)
                     radius: root.boxRadius
                     color: Qt.darker(ThemeBackend.surface0, 1.04)
-
                     opacity: root.introSliders
-                    transform: [
-                        Translate { y: root.s(20) * (1.0 - root.introSliders) },
-                        Scale { origin.x: slidersBox.width / 2; origin.y: slidersBox.height / 2; xScale: 0.95 + (0.05 * root.introSliders); yScale: 0.95 + (0.05 * root.introSliders) }
-                    ]
+                    transform: Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introSliders) }
 
                     ColumnLayout {
                         id: slidersCol
@@ -641,19 +666,21 @@ Item {
                                 accentColor: ThemeBackend.surface1
                                 textColor: isHoveredOrHighlighted ? ThemeBackend.text : root.briColor
                                 onClicked: {
+                                    briCmdThrottle.stop();
+                                    briCmdThrottle.targetPct = -1;
                                     let target = root.sysBrightness > 0 ? 0 : 100;
                                     root.sysBrightness = target;
-                                    Quickshell.execDetached(["brightnessctl", "set", target + "%"]);
+                                    Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", target.toString()]);
                                 }
                             }
 
                             Timer {
                                 id: briCmdThrottle
-                                interval: 50
+                                interval: 400
                                 property int targetPct: -1
                                 onTriggered: {
                                     if (targetPct >= 0) {
-                                        Quickshell.execDetached(["brightnessctl", "set", targetPct + "%"]);
+                                        Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", targetPct.toString()]);
                                         targetPct = -1;
                                     }
                                 }
@@ -687,9 +714,9 @@ Item {
                                     root.isDraggingBri = true;
                                 }
                                 onDragFinished: {
-                                    if (briCmdThrottle.running && briCmdThrottle.targetPct >= 0) {
+                                    if (briCmdThrottle.targetPct >= 0) {
                                         briCmdThrottle.stop();
-                                        Quickshell.execDetached(["brightnessctl", "set", briCmdThrottle.targetPct + "%"]);
+                                        Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", briCmdThrottle.targetPct.toString()]);
                                         briCmdThrottle.targetPct = -1;
                                     }
                                     briSyncDelay.restart();
@@ -699,7 +726,7 @@ Item {
                                     root.sysBrightness = pct;
                                     briSlider.value = pct;
                                     briCmdThrottle.targetPct = pct;
-                                    if (!briCmdThrottle.running) briCmdThrottle.start();
+                                    if (!briSlider.isDragging) briCmdThrottle.restart();
                                 }
                             }
                         }
@@ -712,12 +739,8 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: root.s(73)
                     Layout.maximumHeight: root.s(73)
-
-                    opacity: root.introSliders
-                    transform: [
-                        Translate { y: root.s(20) * (1.0 - root.introSliders) },
-                        Scale { origin.x: quickActionsBox.width / 2; origin.y: quickActionsBox.height / 2; xScale: 0.95 + (0.05 * root.introSliders); yScale: 0.95 + (0.05 * root.introSliders) }
-                    ]
+                    opacity: root.introQuickActions
+                    transform: Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introQuickActions) }
 
                     RowLayout {
                         anchors.fill: parent
@@ -729,13 +752,17 @@ Item {
                             activeColor: ThemeBackend.peach
 
                             function updateState() {
-                                let ds = Config.getSetting("display", {"monitors": {}});
-                                let mons = ds.monitors || {};
                                 let anyEnabled = false;
-                                for (let mName in mons) {
-                                    if (mons[mName].enabled) {
-                                        anyEnabled = true;
-                                        break;
+                                if (typeof BlueLight !== "undefined" && typeof BlueLight.isAnyEnabled === "function") {
+                                anyEnabled = BlueLight.isAnyEnabled();
+                                } else if (typeof Config !== "undefined") {
+                                    let ds = Config.getSetting("display", {"monitors": {}});
+                                    let mons = (ds && ds.monitors) ? ds.monitors : {};
+                                    for (let mName in mons) {
+                                        if (mons[mName] && mons[mName].enabled) {
+                                            anyEnabled = true;
+                                            break;
+                                        }
                                     }
                                 }
                                 isActive = anyEnabled;
@@ -744,35 +771,53 @@ Item {
                             Component.onCompleted: updateState()
 
                             Connections {
-                                target: Config
+                                target: typeof Config !== "undefined" ? Config : null
+                                enabled: root.visible
+                                ignoreUnknownSignals: true
                                 function onSettingsLoaded() {
+                                    nightLightBtn.updateState();
+                                }
+                            }
+
+                            Connections {
+                                target: typeof BlueLight !== "undefined" ? BlueLight : null
+                                enabled: root.visible
+                                ignoreUnknownSignals: true
+                                function onSettingsChanged() {
                                     nightLightBtn.updateState();
                                 }
                             }
 
                             onLeftClicked: {
                                 Sounds.playSfx("system/quick_click.wav");
-                                isActive = !isActive;
-                                let ds = Config.getSetting("display", {"monitors": {}});
-                                let mons = ds.monitors || {};
-                                let temp = 50;
-                                for (let mName in mons) {
-                                    let mSet = mons[mName] || {};
-                                    if (mSet.temperature !== undefined) {
-                                        temp = mSet.temperature;
-                                    }
-                                    let kelvin = Math.round(6500 - (temp / 100) * (6500 - 2500));
+                                let target = !nightLightBtn.isActive;
+                                nightLightBtn.isActive = target;
 
-                                    if (isActive) {
-                                        Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/blue_light_filter.sh", "set", kelvin.toString(), mName]);
-                                    } else {
-                                        Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/blue_light_filter.sh", "reset", mName]);
+                                let monNames = [];
+                                let ds = typeof Config !== "undefined" ? Config.getSetting("display", {"monitors": {}}) : {"monitors": {}};
+                                let mons = (ds && ds.monitors) ? ds.monitors : {};
+                                for (let m in mons) {
+                                    if (monNames.indexOf(m) === -1) {
+                                        monNames.push(m);
                                     }
-                                    mSet.enabled = isActive;
-                                    mons[mName] = mSet;
                                 }
-                                ds.monitors = mons;
-                                Config.setSetting("display", ds);
+                                if (typeof Quickshell !== "undefined" && Quickshell.screens) {
+                                    for (let i = 0; i < Quickshell.screens.length; i++) {
+                                        let scr = Quickshell.screens[i];
+                                        if (scr && scr.name && monNames.indexOf(scr.name) === -1) {
+                                            monNames.push(scr.name);
+                                        }
+                                    }
+                                }
+
+                                if (monNames.length > 0) {
+                                    for (let i = 0; i < monNames.length; i++) {
+                                        BlueLight.setEnabled(monNames[i], target);
+                                    }
+                                } else {
+                                    BlueLight.setEnabled("", target);
+                                }
+                                nightLightBtn.updateState();
                             }
 
                             onRightClicked: {
@@ -795,6 +840,7 @@ Item {
 
                             Connections {
                                 target: Config
+                                enabled: root.visible
                                 function onSettingsLoaded() {
                                     coffeeBtn.updateState();
                                 }
@@ -879,12 +925,8 @@ Item {
                     cardRadius: root.cardRadius
                     baseColor: Qt.darker(ThemeBackend.surface0, 1.04)
                     rootContext: root
-
                     opacity: root.introNotifs
-                    transform: [
-                        Translate { y: root.s(20) * (1.0 - root.introNotifs) },
-                        Scale { origin.x: notifsBox.width / 2; origin.y: notifsBox.height / 2; xScale: 0.95 + (0.05 * root.introNotifs); yScale: 0.95 + (0.05 * root.introNotifs) }
-                    ]
+                    transform: Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introNotifs) }
                 }
 
                 RowLayout {
@@ -917,15 +959,20 @@ Item {
                             opacity: root.introActions
                             transform: [
                                 Translate { id: shakeTranslate; x: 0 },
-                                Translate { y: root.s(30) * (1.0 - root.introActions) + (index * root.s(12) * (1.0 - root.introActions)) },
-                                Scale { origin.x: actionCapsule.width / 2; origin.y: actionCapsule.height / 2; xScale: 0.90 + (0.10 * root.introActions); yScale: 0.90 + (0.10 * root.introActions) }
+                                Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introActions) }
                             ]
 
                             color: (actionMa.containsMouse && !isDisabled) ? ThemeBackend.surface1 : Qt.darker(ThemeBackend.surface0, 1.04)
-                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on color {
+                                enabled: root.visible
+                                ColorAnimation { duration: 200 }
+                            }
 
                             scale: (actionMa.pressed && !isDisabled) ? (0.98 - (0.01 * weight)) : ((actionMa.containsMouse && !isDisabled) ? 1.02 : 1.0)
-                            Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutQuart } }
+                            Behavior on scale {
+                                enabled: root.visible
+                                NumberAnimation { duration: 400; easing.type: Easing.OutQuart }
+                            }
 
                             property real fillLevel: 0.0
                             property bool triggered: false
@@ -965,7 +1012,7 @@ Item {
                             Canvas {
                                 id: actionWaveCanvas
                                 anchors.fill: parent
-                                visible: actionCapsule.fillLevel > 0.001
+                                visible: root.visible && actionCapsule.fillLevel > 0.001
                                 renderTarget: Canvas.Image
                                 renderStrategy: Canvas.Immediate
 
@@ -976,8 +1023,13 @@ Item {
                                     from: 0; to: Math.PI * 2; duration: 800
                                 }
                                 onWavePhaseChanged: requestPaint()
-                                Connections { target: actionCapsule; function onFillLevelChanged() { actionWaveCanvas.requestPaint() } }
-                                Connections { target: actionCapsule; function onRadiusChanged() { actionWaveCanvas.requestPaint() } }
+
+                                Connections {
+                                    target: actionCapsule
+                                    enabled: root.visible
+                                    function onFillLevelChanged() { actionWaveCanvas.requestPaint() }
+                                    function onRadiusChanged() { actionWaveCanvas.requestPaint() }
+                                }
 
                                 onPaint: {
                                     var ctx = getContext("2d");
@@ -1033,7 +1085,10 @@ Item {
                                 color: ThemeBackend.red
                                 opacity: actionCapsule.showError ? 0.15 : 0.0
                                 radius: actionCapsule.radius
-                                Behavior on opacity { NumberAnimation { duration: 200 } }
+                                Behavior on opacity {
+                                    enabled: root.visible
+                                    NumberAnimation { duration: 200 }
+                                }
                                 z: 4
                             }
 
@@ -1043,7 +1098,10 @@ Item {
                                 font.pixelSize: root.s(24)
                                 color: isDisabled ? ThemeBackend.surface2 : (actionMa.containsMouse ? ThemeBackend.text : ThemeBackend.subtext0)
                                 text: icon
-                                Behavior on color { ColorAnimation { duration: 150 } }
+                                Behavior on color {
+                                    enabled: root.visible
+                                    ColorAnimation { duration: 150 }
+                                }
                             }
 
                             Item {
@@ -1164,12 +1222,8 @@ Item {
                     radius: root.isDesktop ? root.s(15) : root.boxRadius
                     color: root.isDesktop ? "transparent" : Qt.darker(ThemeBackend.surface0, 1.04)
                     clip: true
-
                     opacity: root.introCore
-                    transform: [
-                        Translate { y: root.s(15) * (1 - root.introCore) },
-                        Scale { origin.x: batteryBox.width / 2; origin.y: batteryBox.height / 2; xScale: 0.95 + (0.05 * root.introCore); yScale: 0.95 + (0.05 * root.introCore) }
-                    ]
+                    transform: Translate { x: (root.isLeftAnchored ? -root.rowSlideDistance : root.rowSlideDistance) * (1.0 - root.introCore) }
 
                     property real fillLevel: root.animCapacity / 100
                     property real maxWaveAmp: root.isCharging ? root.s(9) : root.s(1.8)
@@ -1178,7 +1232,7 @@ Item {
                     Canvas {
                         id: waveCanvas
                         anchors.fill: parent
-                        visible: !root.isDesktop && batteryBox.fillLevel > 0.001
+                        visible: root.visible && !root.isDesktop && batteryBox.fillLevel > 0.001
                         renderTarget: Canvas.Image
                         renderStrategy: Canvas.Immediate
                         property real wavePhase: 0.0
@@ -1189,22 +1243,31 @@ Item {
                         }
 
                         onWavePhaseChanged: requestPaint()
-                        Connections { target: batteryBox; function onFillLevelChanged() { waveCanvas.requestPaint() } }
-                        Connections { target: batteryBox; function onWaveAmpChanged() { waveCanvas.requestPaint() } }
-                        Connections { target: root; function onBatColorFlatChanged() { waveCanvas.requestPaint() } }
-                        Connections { target: root; function onIsChargingChanged() { waveCanvas.requestPaint() } }
-                        Connections { target: batteryBox; function onRadiusChanged() { waveCanvas.requestPaint() } }
+
                         Connections {
-                            target: UPower.displayDevice
-                            function onReadyChanged() { waveCanvas.requestPaint() }
-                            function onStateChanged() { waveCanvas.requestPaint() }
-                            function onPercentageChanged() { waveCanvas.requestPaint() }
+                            target: batteryBox
+                            enabled: root.visible
+                            function onFillLevelChanged() { waveCanvas.requestPaint() }
+                            function onWaveAmpChanged() { waveCanvas.requestPaint() }
+                            function onRadiusChanged() { waveCanvas.requestPaint() }
                         }
+
                         Connections {
                             target: root
+                            enabled: root.visible
+                            function onBatColorFlatChanged() { waveCanvas.requestPaint() }
+                            function onIsChargingChanged() { waveCanvas.requestPaint() }
                             function onVisibleChanged() {
                                 if (root.visible) waveCanvas.requestPaint();
                             }
+                        }
+
+                        Connections {
+                            target: UPower.displayDevice
+                            enabled: root.visible
+                            function onReadyChanged() { waveCanvas.requestPaint() }
+                            function onStateChanged() { waveCanvas.requestPaint() }
+                            function onPercentageChanged() { waveCanvas.requestPaint() }
                         }
 
                         onPaint: {

@@ -1,4 +1,3 @@
-
 <div align="center">
   <a href="https://ko-fi.com/ilyamiro">
     <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="ko-fi" />
@@ -25,11 +24,15 @@
 
 ### Arch Linux and its derivatives
 
-For Arch-based distributions (including systemd, OpenRC, and other init systems), run the automated installation script:
+For Arch-based distributions (including systemd, OpenRC, and other init systems), run the automated installation script.:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/ilyamiro/serpantinum/master/install/install.sh)"
+
 ```
+
+> [!NOTE]
+> To update, when or if you recieve a notification about the new version being available, just run the script again and choose "update"
 
 ---
 
@@ -138,19 +141,45 @@ If you prefer installing the package directly without the system module:
 
 ```
 
-> **Note:** The automatic installer handles compositor integration on standard distributions. On NixOS / Home Manager, you must manually integrate compositor configs.
-> Sample configs, autostart entries, and keybindings for supported window managers and compositors are available in the [compositors](https://github.com/ilyamiro/serpantinum/tree/master/compositors) directory.
+#### 4. Updating
 
-Ensure your compositor config launches the daemon or shell binary on startup:
+Update the flake lockfile and rebuild your system:
 
 ```bash
-serpantinumd start
+nix flake update serpantinum
+sudo nixos-rebuild switch --flake .
 
 ```
 
+> **Note:** The automatic installer handles compositor integration on standard distributions. On NixOS / Home Manager, you must manually integrate compositor configs.
+> Sample configs, autostart entries, and keybindings for supported window managers and compositors are available in the [compositors](https://github.com/ilyamiro/serpantinum/tree/master/compositors) directory.
+
+
+#### Required autostart
+
+Remember to add clipboard listeners and required services to your compositor's autostart configuration for the clipboard and the equalizer to work properly.
+
+Example on Hyprland:
+
+```lua
+hl.on("hyprland.start", function()
+  hl.exec_cmd("wl-paste --type text --watch cliphist store")
+  hl.exec_cmd("wl-paste --type image --watch cliphist store")
+  hl.exec_cmd("systemctl --user enable --now easyeffects")
+end)
+
+```
+---
+
+## Running
+
+To run the shell, launch `serpantinumd start`
+
+---
+
 ## Credits
 
-- Special thanks to Darkall44/Qylock for providing a gorgeous material SDDM theme!
+* Special thanks to Darkall44/Qylock for providing a gorgeous material SDDM theme!
 
 ---
 
@@ -159,3 +188,4 @@ serpantinumd start
 Copyright (C) 2026 Illia Miroshnichenko
 
 This project is licensed under the GNU Affero General Public License version 3, or (at your option) any later version. See the [LICENSE.md](LICENSE.md) file for the full license text.
+

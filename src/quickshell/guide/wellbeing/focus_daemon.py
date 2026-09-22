@@ -12,8 +12,19 @@ import signal
 import sys
 import shutil
 import glob
+import fcntl
 from datetime import date, datetime, timedelta
 from collections import defaultdict
+
+RUN_DIR = os.environ.get("QS_RUN_FOCUSTIME", "/tmp/quickshell/focustime")
+os.makedirs(RUN_DIR, exist_ok=True)
+
+LOCK_PATH = os.path.join(RUN_DIR, "focus_daemon.lock")
+lock_fd = open(LOCK_PATH, "w")
+try:
+    fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except (IOError, BlockingIOError):
+    sys.exit(0)
 
 current_app_class = "Desktop"
 current_app_title = "Desktop"
@@ -32,8 +43,6 @@ if not os.path.exists(DB_PATH) and os.path.exists(OLD_DB_BASE):
     except Exception:
         pass
 
-RUN_DIR = os.environ.get("QS_RUN_FOCUSTIME", "/tmp/quickshell/focustime")
-os.makedirs(RUN_DIR, exist_ok=True)
 STATE_FILE = os.path.join(RUN_DIR, "focustime_state.json")
 CONFIG_PATH = os.environ.get("QS_SETTINGS", os.path.expanduser("~/.config/serpantinum/settings.json"))
 
@@ -89,8 +98,8 @@ def get_active_window_hyprctl():
         if output.strip() == "{}": return "Desktop", "Desktop"
         data = json.loads(output)
         
-        app_cls = data.get('initialClass') or data.get('class') or ''
-        raw_title = data.get('initialTitle') or data.get('title') or ''
+        app_cls = (data.get('initialClass') or data.get('class') or '').strip()
+        raw_title = (data.get('initialTitle') or data.get('title') or '').strip()
 
         if "quickshell" in app_cls.lower() or "qs-master" in raw_title.lower() or "qs-master" in app_cls.lower():
             return "Quickshell", "Quickshell"
@@ -108,8 +117,8 @@ def get_active_window_niri():
         if not output.strip() or output.strip() == "null": return "Desktop", "Desktop"
         data = json.loads(output)
         
-        app_cls = data.get('app_id') or ''
-        raw_title = data.get('title') or ''
+        app_cls = (data.get('app_id') or '').strip()
+        raw_title = (data.get('title') or '').strip()
 
         if "quickshell" in app_cls.lower() or "qs-master" in raw_title.lower() or "qs-master" in app_cls.lower():
             return "Quickshell", "Quickshell"
@@ -154,7 +163,7 @@ def listen_hyprland_ipc():
                 buffer += data
                 while '\n' in buffer:
                     line, buffer = buffer.split('\n', 1)
-                    if line.startswith('activewindow>>'):
+                    if line.startswith('activewindow>>') or line.startswith('activewindowv2>>'):
                         cls, clean_title = get_active_window_hyprctl()
                         if is_locked() or cls == "hyprlock":
                             current_app_class, current_app_title = "Locked", "Locked"
@@ -316,30 +325,44 @@ class DaemonTracker:
         self.last_sync = time.time()
         self.last_date = target_date
         
-    def fast_tick(self, app_class, app_title, write_to_disk=True):
+    def fast_tick(self, app_class, app_title, secs=1, write_to_disk=True):
         now = datetime.now()
         target_date = now.date()
-        
-        self.buffer.append((target_date.isoformat(), app_class, app_title, now))
+
+        if not app_class or app_class in SYSTEM_STATES:
+            if self.cached_json is not None:
+                self.cached_json["current"] = app_title
+                if write_to_disk:
+                    temp_file = STATE_FILE + ".tmp"
+                    try:
+                        with open(temp_file, "w") as f:
+                            json.dump(self.cached_json, f)
+                        os.rename(temp_file, STATE_FILE)
+                    except Exception:
+                        pass
+            return
+
+        self.buffer.append((target_date.isoformat(), app_class, app_title, now, secs))
         
         if self.cached_json is None or target_date != self.last_date or (time.time() - self.last_sync > 60):
             self.flush()
             self.full_sync(target_date)
         else:
             d = self.cached_json
-            d["total"] += 1
+            d["total"] += secs
             d["current"] = app_title
             
             found = False
             for app in d["apps"]:
                 if app["class"] == app_class:
-                    app["seconds"] += 1
+                    app["seconds"] += secs
+                    app["name"] = app_title
                     found = True
                     break
             if not found:
                 d["apps"].append({
                     "class": app_class, "name": app_title, 
-                    "seconds": 1, "percent": 0
+                    "seconds": secs, "percent": 0
                 })
                 
             for app in d["apps"]:
@@ -347,18 +370,18 @@ class DaemonTracker:
             d["apps"].sort(key=lambda x: x["seconds"], reverse=True)
             
             for w in d["week"]:
-                if w["is_target"]: w["total"] += 1
+                if w["is_target"]: w["total"] += secs
             for m in d["month"]:
-                if m["is_target"]: m["total"] += 1
+                if m["is_target"]: m["total"] += secs
                 
             hr = now.hour
             idx = hr * 2 + (1 if now.minute >= 30 else 0)
-            if 0 <= idx < 48: d["hourly"][idx] += 1
+            if 0 <= idx < 48: d["hourly"][idx] += secs
                 
             day_idx = now.weekday()
-            if 0 <= hr < 24: d["week_heatmap"][day_idx][hr] += 1
+            if 0 <= hr < 24: d["week_heatmap"][day_idx][hr] += secs
                 
-        if write_to_disk:
+        if write_to_disk and self.cached_json:
             temp_file = STATE_FILE + ".tmp"
             try:
                 with open(temp_file, "w") as f:
@@ -380,14 +403,14 @@ class DaemonTracker:
         intervals = defaultdict(int)
         minutes = defaultdict(int)
         
-        for d_str, cls, title, dt in self.buffer:
-            logs[(d_str, cls)] += 1
+        for d_str, cls, title, dt, secs in self.buffer:
+            logs[(d_str, cls)] += secs
             titles[cls] = title
             hr = dt.hour
-            hours[(d_str, hr, cls)] += 1
+            hours[(d_str, hr, cls)] += secs
             minute = hr * 60 + dt.minute
-            intervals[(d_str, minute // 15, cls)] += 1
-            minutes[(d_str, minute, cls)] += 1
+            intervals[(d_str, minute // 15, cls)] += secs
+            minutes[(d_str, minute, cls)] += secs
             
         for (d_str, cls), secs in logs.items():
             c.execute('''INSERT INTO focus_log (log_date, app_class, seconds, app_title) VALUES (?, ?, ?, ?)
@@ -438,9 +461,24 @@ def main():
     notified_apps = set()
     last_notification_date = datetime.now().date()
 
+    last_monotonic = time.monotonic()
+    accumulated_time = 0.0
     tick_counter = 0
+
     while True:
         time.sleep(1)
+        now_monotonic = time.monotonic()
+        delta = now_monotonic - last_monotonic
+        last_monotonic = now_monotonic
+
+        if delta < 0 or delta > 3.0:
+            delta = 1.0
+
+        accumulated_time += delta
+        secs_to_record = int(accumulated_time)
+        if secs_to_record < 1:
+            continue
+        accumulated_time -= secs_to_record
         tick_counter += 1
         
         today = datetime.now().date()
@@ -463,26 +501,30 @@ def main():
         overall_limit = wellbeing.get("overallDailyLimit", 0)
         app_limits = wellbeing.get("appLimits", {})
 
-        if current_app_class and current_app_class not in [""]:
-            if current_app_class not in excluded_apps:
-                tracker.fast_tick(current_app_class, current_app_title, write_to_disk=(tick_counter % 5 == 0))
-                
-                if tracker.cached_json:
-                    total_seconds = tracker.cached_json.get("total", 0)
-                    if overall_limit > 0 and total_seconds >= overall_limit and not notified_overall:
-                        subprocess.Popen(["notify-send", "-u", "critical", "Digital Wellbeing", "Overall daily limit reached!"])
-                        notified_overall = True
+        if is_locked():
+            current_app_class, current_app_title = "Locked", "Locked"
 
-                    app_seconds = 0
-                    for app in tracker.cached_json.get("apps", []):
-                        if app["class"] == current_app_class:
-                            app_seconds = app["seconds"]
-                            break
-                    
-                    app_limit = app_limits.get(current_app_class, 0)
-                    if app_limit > 0 and app_seconds >= app_limit and current_app_class not in notified_apps:
-                        subprocess.Popen(["notify-send", "-u", "critical", "Digital Wellbeing", f"{current_app_title} daily limit reached!"])
-                        notified_apps.add(current_app_class)
+        if current_app_class and current_app_class not in SYSTEM_STATES and current_app_class not in excluded_apps:
+            tracker.fast_tick(current_app_class, current_app_title, secs=secs_to_record, write_to_disk=(tick_counter % 5 == 0))
+            
+            if tracker.cached_json:
+                total_seconds = tracker.cached_json.get("total", 0)
+                if overall_limit > 0 and total_seconds >= overall_limit and not notified_overall:
+                    subprocess.Popen(["notify-send", "-u", "critical", "Digital Wellbeing", "Overall daily limit reached!"])
+                    notified_overall = True
+
+                app_seconds = 0
+                for app in tracker.cached_json.get("apps", []):
+                    if app["class"] == current_app_class:
+                        app_seconds = app["seconds"]
+                        break
+                
+                app_limit = app_limits.get(current_app_class, 0)
+                if app_limit > 0 and app_seconds >= app_limit and current_app_class not in notified_apps:
+                    subprocess.Popen(["notify-send", "-u", "critical", "Digital Wellbeing", f"{current_app_title} daily limit reached!"])
+                    notified_apps.add(current_app_class)
+        else:
+            tracker.fast_tick(current_app_class, current_app_title, secs=0, write_to_disk=(tick_counter % 5 == 0))
 
 if __name__ == "__main__":
     main()

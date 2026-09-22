@@ -4,6 +4,7 @@ import Quickshell
 ShellRoot {
     readonly property bool performanceMode: !!(Config.getSetting("general", {}).performance)
     readonly property bool quickactionsEnabled: Config.getSetting("general", {}).quickactions !== false
+    readonly property bool dockEnabled: Config.getSetting("dock", {}).enabled !== false
 
     Connections {
         target: Quickshell
@@ -17,11 +18,15 @@ ShellRoot {
     Lock {}
 
     Launcher {}
-    Clipboard {}	
+    Clipboard {}    
 
     Polkit {}
     PopoutManager {}
 
+    Loader {
+        active: dockEnabled
+        sourceComponent: Dock {}
+    }
 
     Loader {
         active: !performanceMode
@@ -42,5 +47,9 @@ ShellRoot {
     Loader {
         active: !performanceMode && quickactionsEnabled
         sourceComponent: Floating {}
+    }
+
+    Component.onCompleted: {
+        FirstLaunch.checkFirstLaunch();
     }
 }

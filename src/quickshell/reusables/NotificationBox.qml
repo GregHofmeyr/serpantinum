@@ -283,6 +283,20 @@ Item {
                     property var memberList: []
                     property string currentItemsJson: typeof itemsJson !== "undefined" ? itemsJson : "[]"
 
+                    property string customType: {
+                        let appn = "";
+                        if (memberList && memberList.length > 0 && memberList[0] && memberList[0].appName) {
+                            appn = memberList[0].appName;
+                        } else if (typeof displayName !== "undefined" && displayName) {
+                            appn = displayName;
+                        }
+                        let app = (appn || "").toLowerCase().trim();
+                        if (app === "weather") return "weather";
+                        if (app === "screenshot" || app === "screen recorder") return "screenshot";
+                        if (app === "update" || app === "updater" || app === "serpantinum updater") return "update";
+                        return "default";
+                    }
+
                     onCurrentItemsJsonChanged: {
                         let arr = [];
                         try { arr = JSON.parse(currentItemsJson); } catch(e) {}
@@ -415,10 +429,11 @@ Item {
                         source: {
                             if (!isSingle) return "";
                             let nData = memberList.length > 0 ? memberList[0] : null;
-                            let appn = nData ? nData.appName : (displayName || "");
-                            let app = appn.toLowerCase();
+                            let appn = nData ? (nData.appName || "") : (displayName || "");
+                            let app = appn.toLowerCase().trim();
                             if (app === "weather") return "../notifications/types/Weather.qml";
                             if (app === "screenshot" || app === "screen recorder") return "../notifications/types/Screenshot.qml";
+                            if (app === "update" || app === "updater" || app === "serpantinum updater") return "../notifications/types/Update.qml";
                             return "../notifications/types/Default.qml";
                         }
                         onLoaded: {
@@ -632,25 +647,63 @@ Item {
                                                 color: "transparent"
                                                 clip: true
 
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    visible: groupWrapper.customType === "screenshot"
+                                                    text: "󰄀"
+                                                    font.family: "Iosevka Nerd Font"
+                                                    font.pixelSize: root.s(22)
+                                                    color: ThemeBackend.mauve
+                                                }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    visible: groupWrapper.customType === "weather"
+                                                    text: "󰖕"
+                                                    font.family: "Iosevka Nerd Font"
+                                                    font.pixelSize: root.s(22)
+                                                    color: ThemeBackend.peach
+                                                }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    visible: groupWrapper.customType === "update"
+                                                    text: "󰚰"
+                                                    font.family: ThemeBackend.fontFamily
+                                                    font.pixelSize: root.s(22)
+                                                    color: ThemeBackend.green
+                                                }
+
                                                 Image {
                                                     id: groupHeaderIcon
                                                     anchors.fill: parent
                                                     source: {
-                                                        let ic = typeof icon !== "undefined" ? icon : "";
+                                                        if (groupWrapper.customType !== "default") return "";
+                                                        let ic = "";
+                                                        if (typeof icon !== "undefined" && icon) {
+                                                            ic = icon;
+                                                        } else if (typeof appIcon !== "undefined" && appIcon) {
+                                                            ic = appIcon;
+                                                        } else if (groupWrapper.memberList && groupWrapper.memberList.length > 0) {
+                                                            let first = groupWrapper.memberList[0];
+                                                            if (first) {
+                                                                ic = first.appIcon || first.icon || first.iconPath || "";
+                                                            }
+                                                        }
                                                         if (!ic) return "";
                                                         if (ic.startsWith("file://") || ic.startsWith("image://") || ic.startsWith("http://") || ic.startsWith("https://")) return ic;
                                                         return ic.startsWith("/") ? "file://" + ic : "image://icon/" + ic;
                                                     }
                                                     sourceSize: Qt.size(48, 48)
                                                     fillMode: Image.PreserveAspectFit
-                                                    visible: status === Image.Ready && source !== ""
+                                                    visible: groupWrapper.customType === "default" && status === Image.Ready && source !== ""
                                                 }
 
                                                 Text {
                                                     anchors.centerIn: parent
                                                     anchors.horizontalCenterOffset: 1
                                                     anchors.verticalCenterOffset: -1
-                                                    visible: !groupHeaderIcon.visible
+                                                    visible: groupWrapper.customType === "default" && !groupHeaderIcon.visible
                                                     text: "󰋽"
                                                     font.family: ThemeBackend.fontFamily
                                                     font.pixelSize: root.s(22)
@@ -828,7 +881,7 @@ Item {
 
                                         Repeater {
                                             id: memberRepeater
-                                            model: memberList
+                                            model: groupWrapper.memberList
 
                                             delegate: Loader {
                                                 id: memberNotifLoader
@@ -861,9 +914,10 @@ Item {
                                                 source: {
                                                     if (!memberData) return "";
                                                     let appn = memberData.appName || displayName || "";
-                                                    let app = appn.toLowerCase();
+                                                    let app = appn.toLowerCase().trim();
                                                     if (app === "weather") return "../notifications/types/Weather.qml";
                                                     if (app === "screenshot" || app === "screen recorder") return "../notifications/types/Screenshot.qml";
+                                                    if (app === "update" || app === "updater" || app === "serpantinum updater") return "../notifications/types/Update.qml";
                                                     return "../notifications/types/Default.qml";
                                                 }
 

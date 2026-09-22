@@ -143,6 +143,14 @@ resolve_location() {
     local existing
     existing="$(get_existing_location)"
 
+    local source
+    source="$(echo "$existing" | jq -r '.source // empty' 2>/dev/null)"
+
+    if [[ "$source" == "manual" && "$FORCE_REFRESH" == "false" ]]; then
+        echo "$existing"
+        return
+    fi
+
     if [[ "$FORCE_REFRESH" == "false" && -n "$existing" && "$existing" != "null" ]]; then
         local updated_at current_time diff
         updated_at=$(echo "$existing" | jq -r '.updated_at // 0')
@@ -179,5 +187,6 @@ resolve_location() {
         echo "$fallback"
     fi
 }
+
 
 resolve_location

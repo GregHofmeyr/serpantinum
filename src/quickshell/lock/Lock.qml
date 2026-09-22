@@ -29,7 +29,7 @@ Scope {
     readonly property int batCap: UPower.displayDevice.ready ? Math.round(UPower.displayDevice.percentage * 100) : 0
     readonly property string batPercent: batCap + "%"
     readonly property string batStatus: UPower.displayDevice.ready ? (UPower.displayDevice.state === UPowerDeviceState.FullyCharged ? "Full" : (UPower.displayDevice.state === UPowerDeviceState.Charging ? "Charging" : "Unknown")) : "Unknown"
-    readonly property bool isCharging: UPower.displayDevice.ready && (UPower.displayDevice.state === UPowerDeviceState.Charging || UPower.displayDevice.state === UPowerDeviceState.FullyCharged)
+    readonly property bool isCharging: UPower.displayDevice.ready && (UPower.displayDevice.state === UPowerDeviceState.Charging || UPowerDeviceState.FullyCharged)
     readonly property string batIcon: isCharging ? "󰂄" : (batCap > 20 ? "󰁹" : "󰂃")
 
     readonly property color batDynamicColor: {
@@ -37,22 +37,6 @@ Scope {
         if (batCap <= 25 && !isCharging) return ThemeBackend.peach;
         if (isCharging) return ThemeBackend.green;
         return ThemeBackend.text;
-    }
-
-    Item {
-        width: 1
-        height: 1
-        visible: false
-        opacity: 0
-
-        Item { id: dummyShaderSrc; width: 1; height: 1 }
-        Item { id: dummyShaderMsk; width: 1; height: 1 }
-        MultiEffect {
-            source: dummyShaderSrc
-            blurEnabled: true
-            maskEnabled: true
-            maskSource: dummyShaderMsk
-        }
     }
 
     function updateDeInfo() {
@@ -231,7 +215,7 @@ Scope {
 
     IpcHandler {
         target: "lock"
-        function activate() {
+        function activate(): void {
             root.lock();
         }
     }
@@ -277,7 +261,7 @@ Scope {
 
     Process {
         id: suspendProcess
-        command: ["systemctl", "suspend"]
+        command: ["bash", Caching.serpantinumDir + "/scripts/system/suspend.sh"]
         onExited: {
             SystemInfo.fetch();
             root.updateDeInfo();
@@ -291,12 +275,12 @@ Scope {
 
     Process {
         id: poweroffProcess
-        command: ["systemctl", "poweroff"]
+        command: ["bash", Caching.serpantinumDir + "/scripts/system/poweroff.sh"]
     }
 
     Process {
         id: reloadProcess
-        command: ["systemctl", "reboot"]
+        command: ["bash", Caching.serpantinumDir + "/scripts/system/reboot.sh"]
     }
 
     WlSessionLock {
@@ -665,6 +649,7 @@ Scope {
                     property real mainOpacity: 1.0
 
                     property bool isSysSubscribed: false
+                    property bool isCavaSubscribed: false
                     function updateSysSubscription() {
                         if (screenRoot.wingsReveal > 0.98 && !isSysSubscribed) {
                             SysData.subscribe();
@@ -676,10 +661,13 @@ Scope {
                     }
 
                     function updateCavaConsumer() {
-                        if (screenRoot.wingsReveal > 0.98) {
+                        let shouldSubscribe = screenRoot.wingsReveal > 0.98;
+                        if (shouldSubscribe && !screenRoot.isCavaSubscribed) {
                             Cava.registerConsumer();
-                        } else {
+                            screenRoot.isCavaSubscribed = true;
+                        } else if (!shouldSubscribe && screenRoot.isCavaSubscribed) {
                             Cava.unregisterConsumer();
+                            screenRoot.isCavaSubscribed = false;
                         }
                     }
 
@@ -728,261 +716,32 @@ Scope {
                     property string diskUsedText: SysData.diskGb > 0 ? (SysData.diskGb.toFixed(1) + "G") : "..."
                     property string diskTotalText: SysData.diskTotalGb > 0 ? (SysData.diskTotalGb.toFixed(1) + "G") : ""
 
-                    component LiquidCard: Item {
-                        id: lc
-                        property real value: 0.0
-                        property color colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
-                        property color colorFill: ThemeBackend.mauve
-                        property string icon: ""
-                        property string title: ""
-                        property string midText: ""
-                        property string valueText: ""
-                        property string subText: ""
-                        property real cardRadius: screenRoot.s(14)
-
-                        default property alias childItems: customContentBox.data
-
-                        property real fillRatio: Math.max(0.0, Math.min(1.0, lc.value))
-                        property real fillY: height * (1.0 - lc.fillRatio)
-                        property real waveAmp: (lc.fillRatio < 0.99 && lc.fillRatio > 0.01) ? screenRoot.s(4) * Math.sin(lc.fillRatio * Math.PI) : 0
-                        property real waveCenterOffset: lc.waveAmp > 0 ? 0.375 * lc.waveAmp * (Math.sin(screenRoot.globalWavePhase) - Math.cos(screenRoot.globalWavePhase)) : 0
-
-                        Rectangle {
-                            anchors.fill: parent
-                            anchors.topMargin: screenRoot.s(2)
-                            anchors.bottomMargin: -screenRoot.s(2)
-                            radius: lc.cardRadius
-                            color: Qt.rgba(0, 0, 0, 0.22)
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: lc.cardRadius
-                            color: lc.colorBase
-                            border.width: 1
-                            border.color: Qt.rgba(ThemeBackend.text.r, ThemeBackend.text.g, ThemeBackend.text.b, 0.06)
-                        }
-
-                        Canvas {
-                            id: fluidCanvasItem
-                            anchors.fill: parent
-                            renderTarget: Canvas.FramebufferObject
-                            renderStrategy: Canvas.Immediate
-
-                            onPaint: {
-                                var ctx = getContext("2d");
-                                ctx.clearRect(0, 0, width, height);
-                                if (lc.value <= 0) return;
-
-                                ctx.save();
-                                var r = lc.cardRadius;
-                                ctx.beginPath();
-                                ctx.moveTo(r, 0);
-                                ctx.lineTo(width - r, 0);
-                                ctx.quadraticCurveTo(width, 0, width, r);
-                                ctx.lineTo(width, height - r);
-                                ctx.quadraticCurveTo(width, height, width - r, height);
-                                ctx.lineTo(r, height);
-                                ctx.quadraticCurveTo(0, height, 0, height - r);
-                                ctx.lineTo(0, r);
-                                ctx.quadraticCurveTo(0, 0, r, 0);
-                                ctx.closePath();
-                                ctx.clip();
-
-                                ctx.beginPath();
-                                ctx.moveTo(0, lc.fillY);
-                                if (lc.waveAmp > 0) {
-                                    var sinPhase = Math.sin(screenRoot.globalWavePhase);
-                                    var cosPhase = Math.cos(screenRoot.globalWavePhase + Math.PI);
-                                    var cp1y = lc.fillY + sinPhase * lc.waveAmp;
-                                    var cp2y = lc.fillY + cosPhase * lc.waveAmp;
-                                    ctx.bezierCurveTo(width * 0.33, cp2y, width * 0.66, cp1y, width, lc.fillY);
-                                    ctx.lineTo(width, height);
-                                    ctx.lineTo(0, height);
-                                } else {
-                                    ctx.lineTo(width, lc.fillY);
-                                    ctx.lineTo(width, height);
-                                    ctx.lineTo(0, height);
-                                }
-                                ctx.closePath();
-
-                                var grad = ctx.createLinearGradient(0, 0, 0, height);
-                                grad.addColorStop(0, Qt.lighter(lc.colorFill, 1.18).toString());
-                                grad.addColorStop(1, lc.colorFill.toString());
-                                ctx.fillStyle = grad;
-                                ctx.globalAlpha = 0.94;
-                                ctx.fill();
-                                ctx.restore();
+                    Timer {
+                        id: introStartDelayTimer
+                        interval: 100
+                        repeat: false
+                        onTriggered: {
+                            if (screenRoot.isPlayingIntro && !introSequence.running) {
+                                introSequence.start();
                             }
-
-                            Connections {
-                                target: screenRoot
-                                enabled: screenRoot.wingsReveal > 0.98 && lc.waveAmp > 0
-                                function onGlobalWavePhaseChanged() { fluidCanvasItem.requestPaint(); }
-                            }
-
-                            Connections {
-                                target: lc
-                                enabled: screenRoot.wingsReveal > 0.98
-                                function onValueChanged() { fluidCanvasItem.requestPaint(); }
-                                function onColorFillChanged() { fluidCanvasItem.requestPaint(); }
-                            }
-                        }
-
-                        Item {
-                            anchors.fill: parent
-                            anchors.margins: screenRoot.s(10)
-
-                            IconButton {
-                                id: baseCardIcon
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                size: Math.round(screenRoot.s(26))
-                                cornerRadius: Math.round(screenRoot.s(13))
-                                accentColor: Qt.rgba(ThemeBackend.surface1.r, ThemeBackend.surface1.g, ThemeBackend.surface1.b, 0.6)
-                                textColor: ThemeBackend.subtext0
-                                buttonIcon: lc.icon
-                                iconFontSize: Math.round(screenRoot.s(14))
-                                enabled: false
-                            }
-
-                            Row {
-                                anchors.verticalCenter: baseCardIcon.verticalCenter
-                                anchors.right: parent.right
-                                spacing: screenRoot.s(4)
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    font.family: ThemeBackend.fontFamily
-                                    font.weight: Font.DemiBold
-                                    font.pixelSize: screenRoot.s(10.5)
-                                    color: Qt.rgba(ThemeBackend.subtext0.r, ThemeBackend.subtext0.g, ThemeBackend.subtext0.b, 0.7)
-                                    text: lc.midText
-                                    visible: lc.midText !== ""
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    font.family: ThemeBackend.fontFamily
-                                    font.weight: Font.DemiBold
-                                    font.pixelSize: screenRoot.s(10.5)
-                                    color: ThemeBackend.subtext0
-                                    text: lc.title
-                                }
-                            }
-
-                            Text {
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.bottomMargin: screenRoot.s(1)
-                                font.family: ThemeBackend.fontFamily
-                                font.weight: Font.DemiBold
-                                font.pixelSize: screenRoot.s(11)
-                                color: ThemeBackend.subtext0
-                                text: lc.subText
-                            }
-                            Text {
-                                anchors.bottom: parent.bottom
-                                anchors.right: parent.right
-                                font.family: ThemeBackend.fontFamily
-                                font.weight: Font.Black
-                                font.pixelSize: screenRoot.s(18)
-                                color: ThemeBackend.text
-                                text: lc.valueText
-                            }
-                        }
-
-                        Item {
-                            anchors.bottom: parent.bottom
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            height: Math.min(parent.height, Math.max(0, (parent.height * lc.fillRatio) - lc.waveCenterOffset))
-                            clip: true
-                            visible: lc.value > 0
-
-                            Item {
-                                anchors.bottom: parent.bottom
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: lc.height
-                                anchors.margins: screenRoot.s(10)
-
-                                IconButton {
-                                    id: filledCardIcon
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    size: Math.round(screenRoot.s(26))
-                                    cornerRadius: Math.round(screenRoot.s(13))
-                                    accentColor: Qt.rgba(ThemeBackend.crust.r, ThemeBackend.crust.g, ThemeBackend.crust.b, 0.15)
-                                    textColor: ThemeBackend.crust
-                                    buttonIcon: lc.icon
-                                    iconFontSize: Math.round(screenRoot.s(14))
-                                    enabled: false
-                                }
-
-                                Row {
-                                    anchors.verticalCenter: filledCardIcon.verticalCenter
-                                    anchors.right: parent.right
-                                    spacing: screenRoot.s(4)
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        font.family: ThemeBackend.fontFamily
-                                        font.weight: Font.DemiBold
-                                        font.pixelSize: screenRoot.s(10.5)
-                                        color: Qt.rgba(ThemeBackend.crust.r, ThemeBackend.crust.g, ThemeBackend.crust.b, 0.6)
-                                        text: lc.midText
-                                        visible: lc.midText !== ""
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        font.family: ThemeBackend.fontFamily
-                                        font.weight: Font.DemiBold
-                                        font.pixelSize: screenRoot.s(10.5)
-                                        color: Qt.rgba(ThemeBackend.crust.r, ThemeBackend.crust.g, ThemeBackend.crust.b, 0.85)
-                                        text: lc.title
-                                    }
-                                }
-
-                                Text {
-                                    anchors.bottom: parent.bottom
-                                    anchors.left: parent.left
-                                    anchors.bottomMargin: screenRoot.s(1)
-                                    font.family: ThemeBackend.fontFamily
-                                    font.weight: Font.DemiBold
-                                    font.pixelSize: screenRoot.s(11)
-                                    color: ThemeBackend.crust
-                                    text: lc.subText
-                                }
-                                Text {
-                                    anchors.bottom: parent.bottom
-                                    anchors.right: parent.right
-                                    font.family: ThemeBackend.fontFamily
-                                    font.weight: Font.Black
-                                    font.pixelSize: screenRoot.s(18)
-                                    color: ThemeBackend.crust
-                                    text: lc.valueText
-                                }
-                            }
-                        }
-
-                        Item {
-                            id: customContentBox
-                            anchors.fill: parent
-                            anchors.margins: screenRoot.s(10)
-                            z: 10
                         }
                     }
 
                     Component.onCompleted: {
-                        introSequence.start();
                         screenRoot.updateForecastData();
                         screenRoot.restoreFocus();
+                        if (freezeWallpaperView.status === Image.Ready) {
+                            introSequence.start();
+                        } else {
+                            introStartDelayTimer.start();
+                        }
                     }
 
                     Component.onDestruction: {
-                        Cava.unregisterConsumer();
+                        if (screenRoot.isCavaSubscribed) {
+                            Cava.unregisterConsumer();
+                            screenRoot.isCavaSubscribed = false;
+                        }
                         if (isSysSubscribed) {
                             SysData.unsubscribe();
                             isSysSubscribed = false;
@@ -1036,8 +795,9 @@ Scope {
                             anchors.fill: parent
                             source: screenRoot.wallpaperSource
                             fillMode: Image.PreserveAspectCrop
-                            asynchronous: false
-                            cache: false
+                            asynchronous: true
+                            cache: true
+                            sourceSize: Qt.size(parent.width, parent.height)
                             onStatusChanged: {
                                 if (status === Image.Error) {
                                     let defaultPath = "file://" + Caching.getCacheDir("wallpaper") + "/current_wallpaper.png";
@@ -1054,11 +814,15 @@ Scope {
                             source: (screenRoot.currentFreezePath !== "" && root.freezeTimestamp !== "") ? ("file://" + screenRoot.currentFreezePath) : ""
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: false
-                            cache: false
+                            cache: true
+                            sourceSize: Qt.size(parent.width, parent.height)
                             opacity: (status === Image.Ready && source.toString() !== "") ? 1.0 : 0.0
 
                             onStatusChanged: {
-                                if (status === Image.Error && root.freezeTimestamp !== "") {
+                                if (status === Image.Ready && screenRoot.isPlayingIntro && !introSequence.running) {
+                                    introStartDelayTimer.stop();
+                                    introSequence.start();
+                                } else if (status === Image.Error && root.freezeTimestamp !== "") {
                                     let defaultFreeze = "file://" + Caching.getRunDir("screenshot") + "/lock_freeze_default_" + root.freezeTimestamp + ".png";
                                     if (source.toString() !== defaultFreeze) {
                                         source = defaultFreeze;
@@ -1079,7 +843,8 @@ Scope {
                             source: screenRoot.wallpaperSource
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
-                            cache: false
+                            cache: true
+                            sourceSize: Qt.size(parent.width, parent.height)
 
                             onStatusChanged: {
                                 if (status === Image.Error) {
@@ -1097,7 +862,8 @@ Scope {
                             source: (screenRoot.currentFreezePath !== "" && root.freezeTimestamp !== "") ? ("file://" + screenRoot.currentFreezePath) : ""
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: false
-                            cache: false
+                            cache: true
+                            sourceSize: Qt.size(parent.width, parent.height)
                             opacity: (screenRoot.inputActive && status === Image.Ready && source.toString() !== "") ? 1.0 : 0.0
 
                             Behavior on opacity {
@@ -1129,7 +895,7 @@ Scope {
                             enabled: !screenRoot.isPlayingIntro && !screenRoot.isUnlocking
                             NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
                         }
-                        opacity: screenRoot.contentReveal
+                        opacity: screenRoot.panelReveal
                         visible: opacity > 0.01
                     }
 
@@ -1138,7 +904,7 @@ Scope {
                         anchors.fill: parent
                         z: 2
                         color: ThemeBackend.crust
-                        opacity: (screenRoot.inputActive ? 0.72 : 0.32) * screenRoot.contentReveal
+                        opacity: (screenRoot.inputActive ? 0.72 : 0.32) * screenRoot.panelReveal
                         Behavior on opacity {
                             enabled: !screenRoot.isPlayingIntro && !screenRoot.isUnlocking
                             NumberAnimation { duration: 600; easing.type: Easing.OutCubic }
@@ -1153,60 +919,75 @@ Scope {
                         renderStrategy: Canvas.Immediate
 
                         property real lastPaintedRev: -1
+                        property real cachedS28: screenRoot.s(28)
+
+                        readonly property var wipeColors: [
+                            ThemeBackend.crust.toString(),
+                            ThemeBackend.surface1.toString(),
+                            ThemeBackend.blue.toString(),
+                            ThemeBackend.mauve.toString(),
+                            ThemeBackend.surface0.toString()
+                        ]
+                        readonly property var wipeAmps: [1.5, 1.3, 1.1, 0.9, 0.6]
+                        readonly property var wipeOffsets: [0.0, 0.5, 1.0, 1.5, 2.0]
 
                         opacity: screenRoot.isPlayingIntro ? (screenRoot.panelReveal < 0.8 ? 1.0 : Math.max(0.0, (1.0 - screenRoot.panelReveal) / 0.2)) : 0.0
                         visible: opacity > 0.001
 
                         Connections {
                             target: screenRoot
+                            enabled: screenRoot.isPlayingIntro && wipeCanvas.visible
                             function onPanelRevealChanged() {
-                                if (wipeCanvas.visible && Math.abs(screenRoot.panelReveal - wipeCanvas.lastPaintedRev) >= 0.005) {
+                                if (Math.abs(screenRoot.panelReveal - wipeCanvas.lastPaintedRev) >= 0.005) {
                                     wipeCanvas.requestPaint();
                                 }
                             }
                         }
 
                         onPaint: {
-                            var ctx = getContext("2d");
-                            var w = width;
-                            var h = height;
-                            ctx.clearRect(0, 0, w, h);
-
                             var rev = screenRoot.panelReveal;
                             lastPaintedRev = rev;
                             if (rev <= 0.0) return;
 
-                            var phase = rev * 7.85398;
-                            var s28 = screenRoot.s(28);
+                            var ctx = getContext("2d");
+                            var w = width;
+                            var h = height;
+
+                            var lastFull = -1;
+                            for (var k = 4; k >= 0; k--) {
+                                var p = (rev - (k === 0 ? 0.0 : k * 0.07)) * 1.55;
+                                if (p >= 1.0) {
+                                    lastFull = k;
+                                    break;
+                                }
+                            }
+
+                            if (lastFull >= 0) {
+                                ctx.fillStyle = wipeColors[lastFull];
+                                ctx.fillRect(0, 0, w, h);
+                            } else {
+                                ctx.clearRect(0, 0, w, h);
+                            }
+
+                            var start = lastFull + 1;
+                            if (start >= 5) return;
+
+                            var phase = rev * 7.853981633974483;
+                            var s28 = cachedS28;
                             var cp1x = w * 0.38;
                             var cp2x = w * 0.72;
+                            var pi = 3.141592653589793;
 
-                            var p1 = Math.max(0.0, Math.min(1.0, rev * 1.55));
-                            var p2 = Math.max(0.0, Math.min(1.0, (rev - 0.07) * 1.55));
-                            var p3 = Math.max(0.0, Math.min(1.0, (rev - 0.14) * 1.55));
-                            var p4 = Math.max(0.0, Math.min(1.0, (rev - 0.21) * 1.55));
-                            var p5 = Math.max(0.0, Math.min(1.0, (rev - 0.28) * 1.55));
-
-                            var progs = [p1, p2, p3, p4, p5];
-                            var colors = [ThemeBackend.crust, ThemeBackend.surface1, ThemeBackend.blue, ThemeBackend.mauve, ThemeBackend.surface0];
-                            var amps = [1.5, 1.3, 1.1, 0.9, 0.6];
-                            var offsets = [0.0, 0.5, 1.0, 1.5, 2.0];
-
-                            for (var i = 0; i < 5; i++) {
-                                var prog = progs[i];
+                            for (var i = start; i < 5; i++) {
+                                var prog = (rev - (i === 0 ? 0.0 : i * 0.07)) * 1.55;
                                 if (prog <= 0.0) continue;
-                                if (prog >= 1.0) {
-                                    ctx.fillStyle = colors[i].toString();
-                                    ctx.fillRect(0, 0, w, h);
-                                    continue;
-                                }
 
                                 var smoothProg = Math.pow(prog, 1.4);
                                 var currentY = h * smoothProg;
-                                var waveAmp = s28 * Math.sin(smoothProg * Math.PI) * amps[i];
+                                var waveAmp = s28 * Math.sin(smoothProg * pi) * wipeAmps[i];
 
-                                var cp1y = currentY + Math.sin(phase + offsets[i]) * waveAmp;
-                                var cp2y = currentY + Math.cos(phase + offsets[i] + Math.PI) * waveAmp;
+                                var cp1y = currentY + Math.sin(phase + wipeOffsets[i]) * waveAmp;
+                                var cp2y = currentY + Math.cos(phase + wipeOffsets[i] + pi) * waveAmp;
 
                                 ctx.beginPath();
                                 ctx.moveTo(0, 0);
@@ -1214,7 +995,7 @@ Scope {
                                 ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, w, currentY);
                                 ctx.lineTo(w, 0);
                                 ctx.closePath();
-                                ctx.fillStyle = colors[i].toString();
+                                ctx.fillStyle = wipeColors[i];
                                 ctx.fill();
                             }
                         }
@@ -1492,6 +1273,7 @@ Scope {
                                                 Layout.alignment: Qt.AlignHCenter
                                                 Layout.fillWidth: true
                                                 Layout.preferredHeight: screenRoot.s(44)
+                                                lockBoxColor: Qt.lighter(ThemeBackend.surface0, 1.55)
                                                 baseColor: Qt.lighter(ThemeBackend.surface0, 1.28)
                                                 hoverColor: Qt.lighter(ThemeBackend.surface0, 1.28)
                                                 focusColor: Qt.lighter(ThemeBackend.surface0, 1.28)
@@ -1752,19 +1534,6 @@ Scope {
                                 Layout.preferredHeight: screenRoot.s(182)
                                 clip: true
 
-                                property real baseRef: Math.min(height, width * 0.6)
-                                property real dynMargin: Math.max(12, baseRef * 0.068)
-                                property real dynSpacing: Math.max(8, baseRef * 0.045)
-
-                                property real iconTop: Math.max(44, Math.min(68, baseRef * 0.38))
-                                property real tempHuge: Math.max(34, Math.min(54, baseRef * 0.25))
-                                property real textCity: Math.max(13, Math.min(18, baseRef * 0.075))
-                                property real textDesc: Math.max(11, Math.min(14, baseRef * 0.058))
-                                property real textFeels: Math.max(10, Math.min(13, baseRef * 0.05))
-                                property real forecastTemp: Math.max(12, Math.min(16, baseRef * 0.065))
-                                property real forecastIcon: Math.max(20, Math.min(28, baseRef * 0.125))
-                                property real forecastTime: Math.max(9, Math.min(12, baseRef * 0.045))
-
                                 property string currentHex: Weather.currentHex
                                 property color accentColor: (currentHex && currentHex.length === 7) ? currentHex : ThemeBackend.mauve
 
@@ -1786,7 +1555,7 @@ Scope {
 
                                 LoaderIcon {
                                     anchors.centerIn: parent
-                                    width: Math.max(28, Math.min(56, weatherBoxFaceContainer.baseRef * 0.3))
+                                    width: screenRoot.s(36)
                                     height: width
                                     accentColor: ThemeBackend.mauve
                                     running: Weather.isLoading || !Weather.isReady
@@ -1795,8 +1564,11 @@ Scope {
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: weatherBoxFaceContainer.dynMargin
-                                    spacing: weatherBoxFaceContainer.dynSpacing
+                                    anchors.topMargin: screenRoot.s(12)
+                                    anchors.bottomMargin: screenRoot.s(12)
+                                    anchors.leftMargin: screenRoot.s(14)
+                                    anchors.rightMargin: screenRoot.s(14)
+                                    spacing: screenRoot.s(10)
                                     visible: !(Weather.isLoading || !Weather.isReady)
 
                                     ColumnLayout {
@@ -1808,21 +1580,24 @@ Scope {
                                         Text {
                                             text: Weather.currentIcon !== "" ? Weather.currentIcon : ""
                                             font.family: ThemeBackend.fontFamily
-                                            font.pixelSize: weatherBoxFaceContainer.iconTop
+                                            font.pixelSize: screenRoot.s(46)
                                             color: weatherBoxFaceContainer.accentColor
                                             Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                                            transform: Translate { y: -screenRoot.s(4) }
                                         }
 
-                                        Item { Layout.fillHeight: true }
+                                        Item {
+                                            Layout.fillHeight: true
+                                        }
 
                                         ColumnLayout {
                                             Layout.alignment: Qt.AlignBottom | Qt.AlignLeft
-                                            spacing: 2
+                                            spacing: screenRoot.s(1)
 
                                             Text {
                                                 text: Weather.currentTemp !== "" ? Math.round(parseFloat(Weather.currentTemp)) + "°" : "--°"
                                                 font.family: ThemeBackend.fontFamily
-                                                font.pixelSize: weatherBoxFaceContainer.tempHuge
+                                                font.pixelSize: screenRoot.s(34)
                                                 font.weight: Font.Black
                                                 color: ThemeBackend.text
                                                 elide: Text.ElideRight
@@ -1831,7 +1606,7 @@ Scope {
                                             Text {
                                                 text: "Feels like " + screenRoot.getFeelsLike()
                                                 font.family: ThemeBackend.fontFamily
-                                                font.pixelSize: weatherBoxFaceContainer.textFeels
+                                                font.pixelSize: screenRoot.s(10.5)
                                                 font.weight: Font.Medium
                                                 color: ThemeBackend.subtext0
                                                 elide: Text.ElideRight
@@ -1848,12 +1623,12 @@ Scope {
                                         ColumnLayout {
                                             Layout.fillWidth: true
                                             Layout.alignment: Qt.AlignTop | Qt.AlignRight
-                                            spacing: 2
+                                            spacing: screenRoot.s(1)
 
                                             Text {
                                                 text: (typeof Location !== "undefined" && Location.city && Location.city !== "") ? Location.city : (Weather.data && Weather.data.city ? Weather.data.city : "Unknown")
                                                 font.family: ThemeBackend.fontFamily
-                                                font.pixelSize: weatherBoxFaceContainer.textCity
+                                                font.pixelSize: screenRoot.s(13.5)
                                                 font.weight: Font.Bold
                                                 color: ThemeBackend.text
                                                 horizontalAlignment: Text.AlignRight
@@ -1864,7 +1639,7 @@ Scope {
                                             Text {
                                                 text: Weather.data && Weather.data.forecast && Weather.data.forecast[0] && Weather.data.forecast[0].desc ? Weather.data.forecast[0].desc : (Weather.data && Weather.data.desc ? Weather.data.desc : "")
                                                 font.family: ThemeBackend.fontFamily
-                                                font.pixelSize: weatherBoxFaceContainer.textDesc
+                                                font.pixelSize: screenRoot.s(11)
                                                 font.weight: Font.Medium
                                                 color: ThemeBackend.subtext0
                                                 horizontalAlignment: Text.AlignRight
@@ -1873,42 +1648,46 @@ Scope {
                                             }
                                         }
 
-                                        Item { Layout.fillHeight: true }
+                                        Item {
+                                            Layout.fillHeight: true
+                                        }
 
                                         RowLayout {
                                             Layout.alignment: Qt.AlignBottom | Qt.AlignRight
-                                            spacing: weatherBoxFaceContainer.dynSpacing * 0.9
+                                            spacing: screenRoot.s(8)
 
                                             Repeater {
                                                 model: screenRoot.hourlyForecastList
                                                 delegate: ColumnLayout {
                                                     Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                                                    spacing: 3
+                                                    spacing: screenRoot.s(2)
 
                                                     Text {
                                                         text: Math.round(parseFloat(modelData.temp)) + "°"
                                                         color: ThemeBackend.subtext0
                                                         font.family: ThemeBackend.fontFamily
-                                                        font.pixelSize: weatherBoxFaceContainer.forecastTemp
+                                                        font.pixelSize: screenRoot.s(11.5)
                                                         font.weight: Font.Medium
                                                         Layout.alignment: Qt.AlignHCenter
                                                         horizontalAlignment: Text.AlignHCenter
+                                                        transform: Translate { x: 2 }
                                                     }
 
                                                     Text {
                                                         text: modelData.icon
                                                         color: modelData.hex && modelData.hex.length === 7 ? modelData.hex : weatherBoxFaceContainer.accentColor
                                                         font.family: ThemeBackend.fontFamily
-                                                        font.pixelSize: weatherBoxFaceContainer.forecastIcon
+                                                        font.pixelSize: screenRoot.s(20)
                                                         Layout.alignment: Qt.AlignHCenter
                                                         horizontalAlignment: Text.AlignHCenter
+                                                        transform: Translate { x: -2 }
                                                     }
 
                                                     Text {
                                                         text: screenRoot.formatHour(modelData.time)
                                                         color: ThemeBackend.subtext0
                                                         font.family: ThemeBackend.fontFamily
-                                                        font.pixelSize: weatherBoxFaceContainer.forecastTime
+                                                        font.pixelSize: screenRoot.s(9.5)
                                                         font.weight: Font.Normal
                                                         Layout.alignment: Qt.AlignHCenter
                                                         horizontalAlignment: Text.AlignHCenter
@@ -1931,69 +1710,108 @@ Scope {
                                 function cellW(mx, mw) { return (mw * width) - ((mx > 0 ? sp / 2 : 0) + ((mx + mw) < 0.99 ? sp / 2 : 0)); }
                                 function cellH(my, mh) { return (mh * height) - ((my > 0 ? sp / 2 : 0) + ((my + mh) < 0.99 ? sp / 2 : 0)); }
 
-                                LiquidCard {
+                                SystemUsageCard {
                                     x: systemUsageBox.cellX(0.0)
                                     y: systemUsageBox.cellY(0.0)
                                     width: systemUsageBox.cellW(0.0, 0.333)
                                     height: systemUsageBox.cellH(0.0, 0.5)
                                     value: screenRoot.cpuUsage
+                                    colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
                                     colorFill: Qt.lighter(ThemeBackend.mauve, 1.35)
                                     icon: "\uF2DB"
                                     title: I18n.t("quickactions.systemusage.cpu")
                                     valueText: Math.round(screenRoot.cpuUsage * 100) + "%"
+                                    wavePhase: screenRoot.globalWavePhase
+                                    isLive: screenRoot.wingsReveal > 0.98
+                                    hasShadow: true
+                                    compact: true
                                 }
 
-                                LiquidCard {
+                                SystemUsageCard {
                                     x: systemUsageBox.cellX(0.333)
                                     y: systemUsageBox.cellY(0.0)
                                     width: systemUsageBox.cellW(0.333, 0.334)
                                     height: systemUsageBox.cellH(0.0, 0.5)
                                     value: screenRoot.ramUsage
+                                    colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
                                     colorFill: Qt.lighter(ThemeBackend.mauve, 1.15)
                                     icon: "\uF538"
                                     title: I18n.t("quickactions.systemusage.ram")
                                     valueText: screenRoot.ramUsedGb.toFixed(1) + "G"
+                                    wavePhase: screenRoot.globalWavePhase
+                                    isLive: screenRoot.wingsReveal > 0.98
+                                    hasShadow: true
+                                    compact: true
                                 }
 
-                                LiquidCard {
+                                SystemUsageCard {
                                     x: systemUsageBox.cellX(0.667)
                                     y: systemUsageBox.cellY(0.0)
                                     width: systemUsageBox.cellW(0.667, 0.333)
                                     height: systemUsageBox.cellH(0.0, 0.5)
                                     value: Math.max(0.0, Math.min(1.0, screenRoot.tempC / 100.0))
+                                    colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
                                     colorFill: ThemeBackend.mauve
                                     icon: "\uF2C9"
                                     title: I18n.t("quickactions.systemusage.temp")
                                     valueText: Math.round(screenRoot.tempC) + "°"
+                                    wavePhase: screenRoot.globalWavePhase
+                                    isLive: screenRoot.wingsReveal > 0.98
+                                    hasShadow: true
+                                    compact: true
                                 }
 
-                                LiquidCard {
+                                SystemUsageCard {
                                     x: systemUsageBox.cellX(0.0)
                                     y: systemUsageBox.cellY(0.5)
-                                    width: systemUsageBox.cellW(0.5, 0.5)
+                                    width: systemUsageBox.cellW(0.0, 0.5)
                                     height: systemUsageBox.cellH(0.5, 0.5)
                                     value: screenRoot.diskUsagePercent
+                                    colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
                                     colorFill: Qt.darker(ThemeBackend.mauve, 1.15)
                                     icon: "\uF0A0"
                                     title: screenRoot.diskTotalText
                                     subText: screenRoot.diskUsedText
                                     valueText: Math.round(screenRoot.diskUsagePercent * 100) + "%"
+                                    wavePhase: screenRoot.globalWavePhase
+                                    isLive: screenRoot.wingsReveal > 0.98
+                                    hasShadow: true
+                                    compact: true
                                 }
 
-                                LiquidCard {
+                                SystemUsageCard {
                                     x: systemUsageBox.cellX(0.5)
                                     y: systemUsageBox.cellY(0.5)
                                     width: systemUsageBox.cellW(0.5, 0.5)
                                     height: systemUsageBox.cellH(0.5, 0.5)
                                     value: 0.12
+                                    colorBase: Qt.lighter(ThemeBackend.surface0, 1.28)
                                     colorFill: Qt.darker(ThemeBackend.mauve, 1.35)
                                     icon: "󰤨"
                                     title: I18n.t("quickactions.systemusage.net")
                                     valueText: ""
+                                    wavePhase: screenRoot.globalWavePhase
+                                    isLive: screenRoot.wingsReveal > 0.98
+                                    hasShadow: true
+                                    compact: true
 
                                     ColumnLayout {
                                         anchors.centerIn: parent
-                                        spacing: screenRoot.s(4)
+                                        spacing: screenRoot.s(6)
+
+                                        ClickButton {
+                                            Layout.alignment: Qt.AlignHCenter
+                                            buttonText: SysData.isScanningNet ? "Scanning..." : "Scan"
+                                            buttonIcon: SysData.isScanningNet ? "\uF110" : "\uF021"
+                                            iconFontSize: Math.round(screenRoot.s(14))
+                                            textFontSize: Math.round(screenRoot.s(12))
+                                            accentColor: Qt.rgba(ThemeBackend.surface1.r, ThemeBackend.surface1.g, ThemeBackend.surface1.b, 0.7)
+                                            textColor: ThemeBackend.text
+                                            cornerRadius: Math.round(screenRoot.s(8))
+                                            horizontalPadding: Math.round(screenRoot.s(10))
+                                            enabled: !SysData.isScanningNet
+                                            onClicked: SysData.scanNetwork()
+                                        }
 
                                         Rectangle {
                                             Layout.preferredHeight: screenRoot.s(26)
@@ -2216,6 +2034,8 @@ Scope {
                                                 anchors.fill: parent
                                                 source: (screenRoot.isMediaActive && MprisController.artUrl) ? (MprisController.artUrl.startsWith("file://") ? MprisController.artUrl : "file://" + MprisController.artUrl) : ""
                                                 fillMode: Image.PreserveAspectCrop
+                                                asynchronous: true
+                                                sourceSize: Qt.size(screenRoot.s(60), screenRoot.s(60))
                                                 visible: false
                                             }
 

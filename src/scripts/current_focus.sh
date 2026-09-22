@@ -16,7 +16,9 @@ for pid in $(pgrep -f "$(basename "$0")"); do
 done
 
 cleanup() {
+    trap - EXIT SIGTERM SIGINT
     pkill -P $$ 2>/dev/null
+    exit 0
 }
 trap cleanup EXIT SIGTERM SIGINT
 
@@ -106,7 +108,7 @@ emit_state() {
 
 listen_events() {
     if [ "$COMPOSITOR" = "niri" ]; then
-        niri msg --json event-stream 2>/dev/null | grep --line-buffered -E '"(WindowFocusChanged|WindowOpenedOrChanged|WindowClosed)"'
+        niri msg --json event-stream 2>/dev/null | grep --line-buffered -E '"(WindowFocusChanged|WindowOpenedOrChanged|WindowClosed|WorkspaceActivated)"'
     else
         socat -u UNIX-CONNECT:"$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" - 2>/dev/null
     fi

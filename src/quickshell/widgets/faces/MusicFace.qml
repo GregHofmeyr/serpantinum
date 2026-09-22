@@ -118,7 +118,7 @@ Item {
         id: bgContainer
         anchors.fill: parent
         color: ThemeBackend.surface0
-        radius: ThemeBackend.borderRadius * 2
+        radius: ThemeBackend.borderRadius
 
         Rectangle {
             id: bgMask
@@ -204,14 +204,6 @@ Item {
                     visible: !root.isMediaActive || !MprisController.artUrl
                 }
 
-                Image {
-                    id: artImg
-                    anchors.fill: parent
-                    source: (root.isMediaActive && MprisController.artUrl) ? "file://" + MprisController.artUrl : ""
-                    fillMode: Image.PreserveAspectCrop
-                    visible: false
-                }
-
                 Rectangle {
                     id: artMask
                     anchors.fill: parent
@@ -220,12 +212,23 @@ Item {
                     layer.enabled: true
                 }
 
-                MultiEffect {
+                Item {
+                    id: artMaskedContainer
                     anchors.fill: parent
-                    source: artImg
-                    maskEnabled: true
-                    maskSource: artMask
-                    visible: root.isMediaActive && MprisController.artUrl !== ""
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        maskEnabled: true
+                        maskSource: artMask
+                    }
+
+                    Image {
+                        id: artImg
+                        anchors.fill: parent
+                        source: (root.isMediaActive && MprisController.artUrl) ? (MprisController.artUrl.startsWith("file://") || MprisController.artUrl.startsWith("http") ? MprisController.artUrl : "file://" + MprisController.artUrl) : ""
+                        fillMode: Image.PreserveAspectCrop
+                        opacity: (root.isMediaActive && status === Image.Ready && MprisController.artUrl !== "") ? 1.0 : 0.0
+                        Behavior on opacity { NumberAnimation { duration: 300 } }
+                    }
                 }
             }
 
@@ -268,6 +271,7 @@ Item {
                             }
 
                             Text {
+                                id: titleTextClone
                                 text: titleTextMain.text
                                 font.family: ThemeBackend.fontFamily
                                 font.weight: Font.Black

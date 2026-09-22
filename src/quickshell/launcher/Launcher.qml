@@ -41,6 +41,102 @@ PanelWindow {
 
     property bool isVisible: LauncherController.isVisible
     property int configRevision: 0
+    property bool appsLoaded: false
+    property real introItems: 0.0
+    property int currentTabIndex: 0
+
+    property string tabAppsTitle: (typeof I18n !== "undefined") ? I18n.t("applauncher.tab_applications", "Applications") : "Applications"
+    property string tabFilesTitle: (typeof I18n !== "undefined") ? I18n.t("applauncher.tab_files", "Files") : "Files"
+
+    function saveLastTab() {
+        let dir = (typeof Caching !== "undefined" && typeof Caching.getCacheDir === "function") ? Caching.getCacheDir("launcher") : "";
+        if (dir) {
+            Quickshell.execDetached(["bash", "-c", "mkdir -p '" + dir + "' && echo '" + currentTabIndex + "' > '" + dir + "/last_tab.txt'"]);
+        }
+    }
+
+    onCurrentTabIndexChanged: {
+        saveLastTab();
+        if (tabSwitch.currentIndex !== currentTabIndex) {
+            tabSwitch.currentIndex = currentTabIndex;
+        }
+        if (currentTabIndex === 0) {
+            executeFilter(searchInput.text);
+        } else {
+            executeFileSearch(searchInput.text);
+        }
+    }
+
+    FileView {
+        id: lastTabWatcher
+        path: (typeof Caching !== "undefined" && typeof Caching.getCacheDir === "function") ? (Caching.getCacheDir("launcher") + "/last_tab.txt") : ""
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                let val = text().trim();
+                if (val !== "") {
+                    let idx = parseInt(val);
+                    if (!isNaN(idx) && (idx === 0 || idx === 1)) {
+                        launcherWindow.currentTabIndex = idx;
+                        tabSwitch.currentIndex = idx;
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+
+    function getItemProgress(idx) {
+        if (introItems >= 1.0) return 1.0;
+        if (introItems <= 0.0) return 0.0;
+        let start = Math.min(idx, 10) * 0.04;
+        let p = Math.min(1.0, Math.max(0.0, (introItems - start) / 0.42));
+        if (p <= 0.0) return 0.0;
+        if (p >= 1.0) return 1.0;
+        let c1 = 0.85;
+        let c3 = c1 + 1;
+        return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+    }
+
+    function getItemOpacity(idx) {
+        if (introItems >= 1.0) return 1.0;
+        if (introItems <= 0.0) return 0.0;
+        let start = Math.min(idx, 10) * 0.04;
+        let p = Math.min(1.0, Math.max(0.0, (introItems - start) / 0.28));
+        return p;
+    }
+
+    function restartItemsIntro() {
+        introItems = 0.0;
+        itemsIntroSequence.restart();
+    }
+
+    SequentialAnimation {
+        id: itemsIntroSequence
+        running: false
+        PauseAnimation { duration: 60 }
+        NumberAnimation {
+            target: launcherWindow
+            property: "introItems"
+            from: 0.0
+            to: 1.0
+            duration: 520
+            easing.type: Easing.Linear
+        }
+    }
+
+    Component.onCompleted: {
+        if (smartRanking) {
+            rankFetcher.running = true;
+        }
+        loadApps();
+        appsLoaded = true;
+        if (currentTabIndex === 0) {
+            executeFilter("");
+        } else {
+            executeFileSearch("");
+        }
+    }
 
     Connections {
         target: (typeof Config !== "undefined") ? Config : null
@@ -53,26 +149,57 @@ PanelWindow {
     Connections {
         target: (typeof I18n !== "undefined") ? I18n : null
         function onLanguageChanged() {
-            launcherWindow.loadApps();
-            launcherWindow.executeFilter(searchInput.text);
+            launcherWindow.tabAppsTitle = (typeof I18n !== "undefined") ? I18n.t("applauncher.tab_applications", "Applications") : "Applications";
+            launcherWindow.tabFilesTitle = (typeof I18n !== "undefined") ? I18n.t("applauncher.tab_files", "Files") : "Files";
+            if (launcherWindow.isVisible) {
+                launcherWindow.loadApps();
+                if (launcherWindow.currentTabIndex === 0) {
+                    launcherWindow.executeFilter(searchInput.text);
+                } else {
+                    launcherWindow.executeFileSearch(searchInput.text);
+                }
+            } else {
+                launcherWindow.appsLoaded = false;
+            }
+        }
+    }
+
+    Connections {
+        target: (typeof DesktopEntries !== "undefined") ? DesktopEntries : null
+        function onApplicationsChanged() {
+            if (launcherWindow.isVisible) {
+                launcherWindow.loadApps();
+                if (launcherWindow.currentTabIndex === 0) {
+                    launcherWindow.executeFilter(searchInput.text);
+                }
+            } else {
+                launcherWindow.appsLoaded = false;
+            }
         }
     }
 
     Connections {
         target: (typeof DesktopEntries !== "undefined" && DesktopEntries.applications) ? DesktopEntries.applications : null
         function onValuesChanged() {
-            launcherWindow.loadApps();
-            launcherWindow.executeFilter(searchInput.text);
+            if (launcherWindow.isVisible) {
+                launcherWindow.loadApps();
+                if (launcherWindow.currentTabIndex === 0) {
+                    launcherWindow.executeFilter(searchInput.text);
+                }
+            } else {
+                launcherWindow.appsLoaded = false;
+            }
         }
         function onCountChanged() {
-            launcherWindow.loadApps();
-            launcherWindow.executeFilter(searchInput.text);
+            if (launcherWindow.isVisible) {
+                launcherWindow.loadApps();
+                if (launcherWindow.currentTabIndex === 0) {
+                    launcherWindow.executeFilter(searchInput.text);
+                }
+            } else {
+                launcherWindow.appsLoaded = false;
+            }
         }
-    }
-
-    Component.onCompleted: {
-        loadApps();
-        executeFilter("");
     }
 
     property var defaultLauncherSettings: ({
@@ -101,8 +228,14 @@ PanelWindow {
     property bool smartRanking: (rawLauncherSettings && rawLauncherSettings.smartRanking !== undefined) ? rawLauncherSettings.smartRanking : true
 
     onSmartRankingChanged: {
-        loadApps();
-        executeFilter(searchInput.text);
+        if (launcherWindow.isVisible) {
+            loadApps();
+            if (launcherWindow.currentTabIndex === 0) {
+                executeFilter(searchInput.text);
+            }
+        } else {
+            launcherWindow.appsLoaded = false;
+        }
     }
 
     property var rawBarSettings: {
@@ -128,9 +261,31 @@ PanelWindow {
         return Config.rawSettings.bar.position || "top";
     }
 
+    property real barOpacity: {
+        let dummy = configRevision;
+        if (!rawBarSettings || rawBarSettings.opacity === undefined) return 1.0;
+        let op = Number(rawBarSettings.opacity);
+        return op > 1.0 ? (op / 100.0) : op;
+    }
+
     property bool barAutohide: (rawBarSettings && rawBarSettings.autohide !== undefined) ? Boolean(rawBarSettings.autohide) : false
 
-    readonly property bool isFullscreenActive: {
+    readonly property bool isOsdFullscreen: (typeof OsdController !== "undefined") ? Boolean(OsdController.isFullscreen) : false
+
+    readonly property bool isToplevelFullscreen: {
+        try {
+            if (typeof ToplevelManager !== "undefined" && ToplevelManager.activeToplevel && ToplevelManager.activeToplevel.fullscreen) {
+                let atl = ToplevelManager.activeToplevel;
+                if (atl.screens && atl.screens.length > 0) {
+                    return atl.screens.indexOf(launcherWindow.screen) !== -1;
+                }
+                return true;
+            }
+        } catch (e) {}
+        return false;
+    }
+
+    readonly property bool isHyprlandFullscreen: {
         try {
             if (typeof Hyprland !== "undefined" && Hyprland.focusedWorkspace) {
                 return Boolean(Hyprland.focusedWorkspace.hasFullscreen || (Hyprland.activeToplevel && Hyprland.activeToplevel.fullscreen));
@@ -139,6 +294,8 @@ PanelWindow {
         return false;
     }
 
+    readonly property bool isFullscreenActive: isOsdFullscreen || isToplevelFullscreen || isHyprlandFullscreen
+
     readonly property bool isBarEffectivelyHidden: barAutohide || isFullscreenActive
 
     property real barHeight: {
@@ -146,10 +303,12 @@ PanelWindow {
         return (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar && Config.rawSettings.bar.height) ? s(Config.rawSettings.bar.height) : s(40);
     }
 
-    property bool isBarSolid: barStyle === "solid" || barStyle === "fill"
-    property bool barMatchesLauncher: isBarSolid && (attachEdge === barPosition)
+    property bool isBarSolid: (barStyle === "solid" || barStyle === "fill") && Math.round(barOpacity * 100) >= 100
+    property bool barMatchesLauncher: isBarSolid && (attachEdge === barPosition) && !isBarEffectivelyHidden
 
     property string attachEdge: launcherPosition
+    property bool isSideAttached: attachEdge === "left" || attachEdge === "right"
+    property bool isCentered: attachEdge === "center"
 
     onAttachEdgeChanged: {
         LauncherController.hide();
@@ -163,13 +322,28 @@ PanelWindow {
         LauncherController.hide();
     }
 
-    property bool isSideAttached: attachEdge === "left" || attachEdge === "right"
-
     property real cornerRadius: ThemeBackend.borderRadius <= 16 ? ThemeBackend.borderRadius * 2 : Math.min(32, 32 - 16 * Math.exp(-(ThemeBackend.borderRadius - 16) / 12))
     property real outerCornerRadius: cornerRadius
 
     property real baseLauncherWidth: s(customWidth)
-    property real baseLauncherHeight: s(70) + (customItemCount * s(48))
+    property real collapsedCenterHeight: s(110)
+
+    property real targetLauncherHeight: {
+        let count = Math.min(appModel.count, customItemCount);
+        let headerH = s(36) + s(28) + s(8) + s(28);
+        if (count <= 0) {
+            return headerH;
+        }
+        return headerH + s(8) + (count * s(48));
+    }
+
+    property real animatedLauncherHeight: targetLauncherHeight
+    Behavior on animatedLauncherHeight {
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutCubic
+        }
+    }
 
     visible: isVisible || container.animProgress > 0.001
 
@@ -195,12 +369,74 @@ PanelWindow {
                 try {
                     if (this.text && this.text.trim().length > 0) {
                         launcherWindow.usageRanks = JSON.parse(this.text);
-                        launcherWindow.loadApps();
-                        executeFilter(searchInput.text);
+                        if (!launcherWindow.isVisible || appModel.count === 0) {
+                            launcherWindow.loadApps();
+                            launcherWindow.appsLoaded = true;
+                            if (launcherWindow.currentTabIndex === 0) {
+                                launcherWindow.executeFilter(searchInput.text);
+                            }
+                        }
                     }
                 } catch(e) {}
             }
         }
+    }
+
+    property string fileSearchScript: "import os, sys, json\nq = sys.argv[1] if len(sys.argv) > 1 else ''\nhome = os.path.expanduser('~')\nres = []\nif q.startswith('/') or q.startswith('~'):\n    p = os.path.expanduser(q)\n    d = p if (os.path.isdir(p) and (q.endswith('/') or q.endswith('\\\\'))) else (os.path.dirname(p) or home)\n    pref = '' if (os.path.isdir(p) and (q.endswith('/') or q.endswith('\\\\'))) else os.path.basename(p).lower()\n    if os.path.isdir(d):\n        try:\n            entries = sorted(os.listdir(d), key=lambda x: (not os.path.isdir(os.path.join(d, x)), x.lower()))\n            for item in entries:\n                if item.startswith('.') and not pref.startswith('.'):\n                    continue\n                if not pref or pref in item.lower():\n                    full = os.path.join(d, item)\n                    res.append({'name': item, 'path': full, 'isDir': os.path.isdir(full)})\n                    if len(res) >= 40: break\n        except Exception: pass\nelse:\n    s = q.lower().strip()\n    targets = [home, os.path.join(home, 'Desktop'), os.path.join(home, 'Documents'), os.path.join(home, 'Downloads'), os.path.join(home, 'Pictures'), os.path.join(home, 'Videos'), os.path.join(home, 'Music')]\n    seen = set()\n    for t in targets:\n        if not os.path.isdir(t): continue\n        try:\n            for root, dirs, files in os.walk(t):\n                rel = os.path.relpath(root, t)\n                if rel != '.' and rel.count(os.sep) >= 2:\n                    dirs.clear()\n                    continue\n                dirs[:] = [dr for dr in dirs if not dr.startswith('.') and dr not in ('node_modules', '.git', '.cache', 'target', 'build', '.local')]\n                if s:\n                    for dr in dirs:\n                        if s in dr.lower():\n                            full = os.path.join(root, dr)\n                            if full not in seen:\n                                seen.add(full)\n                                res.append({'name': dr, 'path': full, 'isDir': True})\n                                if len(res) >= 40: break\n                for fn in files:\n                    if fn.startswith('.'): continue\n                    if not s or s in fn.lower():\n                        full = os.path.join(root, fn)\n                        if full not in seen:\n                            seen.add(full)\n                            res.append({'name': fn, 'path': full, 'isDir': False})\n                            if len(res) >= 40: break\n                if len(res) >= 40: break\n        except Exception: pass\n        if len(res) >= 40: break\nprint(json.dumps(res[:40]))"
+
+    Process {
+        id: fileSearchProcess
+        running: false
+        command: []
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    if (this.text && this.text.trim().length > 0) {
+                        let parsed = JSON.parse(this.text);
+                        let items = [];
+                        for (let i = 0; i < parsed.length; i++) {
+                            let p = parsed[i];
+                            items.push({
+                                name: p.name,
+                                description: p.path,
+                                desktop_id: "",
+                                icon: "",
+                                fontIcon: launcherWindow.getFileFontIcon(p.name, p.isDir),
+                                score: 0,
+                                isCommand: false,
+                                command: "",
+                                isCalc: false,
+                                calcResult: "",
+                                isWidget: false,
+                                widgetTarget: "",
+                                isFile: true,
+                                filePath: p.path,
+                                isDir: p.isDir
+                            });
+                        }
+                        if (launcherWindow.currentTabIndex === 1) {
+                            launcherWindow.applyModelItems(items);
+                        }
+                    } else if (launcherWindow.currentTabIndex === 1) {
+                        launcherWindow.applyModelItems([]);
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+
+    function getFileFontIcon(name, isDir) {
+        if (isDir) return "󰉋";
+        let ext = name.split(".").pop().toLowerCase();
+        if (["png", "jpg", "jpeg", "webp", "gif", "svg"].indexOf(ext) !== -1) return "󰋩";
+        if (["mp4", "mkv", "webm", "avi", "mov"].indexOf(ext) !== -1) return "󰕧";
+        if (["mp3", "wav", "flac", "ogg", "m4a"].indexOf(ext) !== -1) return "󰎆";
+        if (["zip", "tar", "gz", "xz", "7z", "rar", "bz2"].indexOf(ext) !== -1) return "󰛫";
+        if (["pdf"].indexOf(ext) !== -1) return "󰈦";
+        if (["js", "ts", "qml", "py", "sh", "rs", "c", "cpp", "h", "json", "html", "css", "nix"].indexOf(ext) !== -1) return "󰅩";
+        if (["txt", "md", "doc", "docx", "odt"].indexOf(ext) !== -1) return "󰈙";
+        return "󰈔";
     }
 
     Timer {
@@ -241,21 +477,44 @@ PanelWindow {
 
     Timer {
         id: filterDebounceTimer
-        interval: 60
+        interval: 80
         repeat: false
         onTriggered: {
             executeFilter(launcherWindow.pendingQuery);
         }
     }
 
+    Timer {
+        id: fileDebounceTimer
+        interval: 80
+        repeat: false
+        onTriggered: {
+            executeFileSearch(launcherWindow.pendingQuery);
+        }
+    }
+
     onIsVisibleChanged: {
         if (isVisible) {
-            searchInput.clear();
-            filterDebounceTimer.stop();
-            loadApps();
-            executeFilter("");
-            if (launcherWindow.smartRanking) {
-                rankFetcher.running = false;
+            tabSwitch.currentIndex = launcherWindow.currentTabIndex;
+            restartItemsIntro();
+            if (!launcherWindow.appsLoaded) {
+                launcherWindow.loadApps();
+                launcherWindow.appsLoaded = true;
+            }
+            if (searchInput.text !== "") {
+                searchInput.clear();
+                filterDebounceTimer.stop();
+                fileDebounceTimer.stop();
+            } else {
+                filterDebounceTimer.stop();
+                fileDebounceTimer.stop();
+            }
+            if (launcherWindow.currentTabIndex === 0) {
+                executeFilter("");
+            } else {
+                executeFileSearch("");
+            }
+            if (launcherWindow.smartRanking && !rankFetcher.running) {
                 rankFetcher.running = true;
             }
             launcherWindow.grabInputFocus();
@@ -263,11 +522,23 @@ PanelWindow {
             focusRetryTimer.restart();
             focusFinalTimer.restart();
         } else {
+            itemsIntroSequence.stop();
+            introItems = 0.0;
+            launcherWindow.appsLoaded = false;
+            appList.resetScroll();
             filterDebounceTimer.stop();
+            fileDebounceTimer.stop();
             focusTimer.stop();
             focusRetryTimer.stop();
             focusFinalTimer.stop();
             keyboardNavTimer.stop();
+            if (fileSearchProcess.running) {
+                fileSearchProcess.running = false;
+            }
+            if (launcherWindow.smartRanking) {
+                loadApps();
+                executeFilter("");
+            }
         }
     }
 
@@ -350,7 +621,10 @@ PanelWindow {
                     isCalc: false,
                     calcResult: "",
                     isWidget: false,
-                    widgetTarget: ""
+                    widgetTarget: "",
+                    isFile: false,
+                    filePath: "",
+                    isDir: false
                 });
             }
         }
@@ -377,7 +651,10 @@ PanelWindow {
                 isCalc: false,
                 calcResult: "",
                 isWidget: true,
-                widgetTarget: w.id
+                widgetTarget: w.id,
+                isFile: false,
+                filePath: "",
+                isDir: false
             });
         }
 
@@ -409,6 +686,21 @@ PanelWindow {
         filterDebounceTimer.restart();
     }
 
+    function filterFiles(query) {
+        launcherWindow.pendingQuery = query;
+        fileDebounceTimer.restart();
+    }
+
+    function executeFileSearch(query) {
+        launcherWindow.isKeyboardNav = false;
+        if (keyboardNavTimer.running) keyboardNavTimer.stop();
+        if (fileSearchProcess.running) {
+            fileSearchProcess.running = false;
+        }
+        fileSearchProcess.command = ["python3", "-c", launcherWindow.fileSearchScript, query ? query.trim() : ""];
+        fileSearchProcess.running = true;
+    }
+
     function isSubsequence(sub, str) {
         let i = 0;
         let j = 0;
@@ -419,6 +711,49 @@ PanelWindow {
             j++;
         }
         return i === sub.length;
+    }
+
+    function applyModelItems(filtered) {
+        let minCount = Math.min(appModel.count, filtered.length);
+        for (let i = 0; i < minCount; i++) {
+            let cur = appModel.get(i);
+            let target = filtered[i];
+            if (cur.name !== target.name
+                || cur.desktop_id !== target.desktop_id
+                || cur.description !== target.description
+                || cur.icon !== target.icon
+                || cur.fontIcon !== target.fontIcon
+                || cur.score !== target.score
+                || cur.command !== target.command
+                || cur.calcResult !== target.calcResult
+                || cur.isCommand !== target.isCommand
+                || cur.isCalc !== target.isCalc
+                || cur.isWidget !== target.isWidget
+                || cur.widgetTarget !== target.widgetTarget
+                || cur.isFile !== target.isFile
+                || cur.filePath !== target.filePath
+                || cur.isDir !== target.isDir) {
+                appModel.set(i, target);
+            }
+        }
+
+        if (appModel.count > filtered.length) {
+            for (let i = appModel.count - 1; i >= filtered.length; i--) {
+                appModel.remove(i);
+            }
+        } else if (appModel.count < filtered.length) {
+            for (let i = appModel.count; i < filtered.length; i++) {
+                appModel.append(filtered[i]);
+            }
+        }
+
+        appList.resetScroll();
+
+        if (appModel.count > 0) {
+            appList.currentIndex = 0;
+        } else {
+            appList.currentIndex = -1;
+        }
     }
 
     function executeFilter(query) {
@@ -444,7 +779,10 @@ PanelWindow {
                     isCalc: false,
                     calcResult: "",
                     isWidget: false,
-                    widgetTarget: ""
+                    widgetTarget: "",
+                    isFile: false,
+                    filePath: "",
+                    isDir: false
                 });
             } else {
                 filtered.push({
@@ -459,7 +797,10 @@ PanelWindow {
                     isCalc: false,
                     calcResult: "",
                     isWidget: false,
-                    widgetTarget: ""
+                    widgetTarget: "",
+                    isFile: false,
+                    filePath: "",
+                    isDir: false
                 });
             }
         }
@@ -478,7 +819,10 @@ PanelWindow {
                 isCalc: true,
                 calcResult: mathResult,
                 isWidget: false,
-                widgetTarget: ""
+                widgetTarget: "",
+                isFile: false,
+                filePath: "",
+                isDir: false
             });
         }
 
@@ -512,7 +856,7 @@ PanelWindow {
             }
 
             if (matches) {
-                let appCopy = {
+                filtered.push({
                     name: app.name,
                     description: app.description,
                     desktop_id: app.desktop_id,
@@ -524,9 +868,11 @@ PanelWindow {
                     isCalc: false,
                     calcResult: "",
                     isWidget: app.isWidget || false,
-                    widgetTarget: app.widgetTarget || ""
-                };
-                filtered.push(appCopy);
+                    widgetTarget: app.widgetTarget || "",
+                    isFile: false,
+                    filePath: "",
+                    isDir: false
+                });
             }
         }
 
@@ -539,22 +885,37 @@ PanelWindow {
             });
         }
 
-        appModel.clear();
-        for (let i = 0; i < filtered.length; i++) {
-            appModel.append(filtered[i]);
-        }
-
-        if (appModel.count > 0) {
-            appList.currentIndex = 0;
-        } else {
-            appList.currentIndex = -1;
-        }
+        applyModelItems(filtered);
     }
 
     function activateIndex(index) {
         if (index < 0 || index >= appModel.count) return;
         let item = appModel.get(index);
         if (!item) return;
+
+        if (item.isFile) {
+            let script = "p=\"$1\"\n"
+                + "if [ -d \"$p\" ]; then\n"
+                + "  xdg-open \"$p\"\n"
+                + "  exit 0\n"
+                + "fi\n"
+                + "mime=$(xdg-mime query filetype \"$p\" 2>/dev/null)\n"
+                + "handler=\"\"\n"
+                + "if [ -n \"$mime\" ]; then\n"
+                + "  handler=$(xdg-mime query default \"$mime\" 2>/dev/null)\n"
+                + "fi\n"
+                + "if [ -n \"$handler\" ]; then\n"
+                + "  xdg-open \"$p\" 2>/dev/null && exit 0\n"
+                + "fi\n"
+                + "if command -v nautilus >/dev/null 2>&1; then\n"
+                + "  nautilus --select \"$p\" >/dev/null 2>&1 &\n"
+                + "else\n"
+                + "  xdg-open \"$(dirname \"$p\")\" >/dev/null 2>&1 &\n"
+                + "fi";
+            Quickshell.execDetached(["bash", "-c", script, "_", item.filePath]);
+            closeLauncher();
+            return;
+        }
 
         if (item.isCommand) {
             if (item.command && item.command.trim().length > 0) {
@@ -603,7 +964,7 @@ PanelWindow {
     Item {
         id: topBarHole
 
-        property int barThickness: 48
+        property int barThickness: launcherWindow.barHeight
         property string bp: launcherWindow.barPosition
         property bool activeBar: !launcherWindow.isBarEffectivelyHidden
 
@@ -650,9 +1011,9 @@ PanelWindow {
         property real animProgress: launcherWindow.isVisible ? 1.0 : 0.0
         Behavior on animProgress {
             NumberAnimation {
-                duration: launcherWindow.isVisible ? 360 : 220
-                easing.type: launcherWindow.isVisible ? Easing.OutBack : Easing.OutCubic
-                easing.overshoot: 1.08
+                duration: launcherWindow.isVisible ? (launcherWindow.isCentered ? 420 : 340) : (launcherWindow.isCentered ? 200 : 150)
+                easing.type: launcherWindow.isVisible ? Easing.OutBack : Easing.InQuad
+                easing.overshoot: launcherWindow.isVisible ? 1.28 : 1.0
             }
         }
 
@@ -666,8 +1027,9 @@ PanelWindow {
                 let offset = launcherWindow.barMatchesLauncher ? launcherWindow.barHeight : 0;
                 return (launcherWindow.width - offset) - width;
             }
-            return Math.floor((launcherWindow.width - launcherWindow.baseLauncherWidth) / 2);
+            return Math.floor((launcherWindow.width - width) / 2);
         }
+
         y: {
             if (launcherWindow.attachEdge === "top") {
                 return launcherWindow.barMatchesLauncher ? launcherWindow.barHeight : 0;
@@ -676,16 +1038,30 @@ PanelWindow {
                 let offset = launcherWindow.barMatchesLauncher ? launcherWindow.barHeight : 0;
                 return (launcherWindow.height - offset) - height;
             }
-            return Math.floor((launcherWindow.height - launcherWindow.baseLauncherHeight) / 2);
+            return Math.floor((launcherWindow.height - height) / 2);
         }
+
         width: launcherWindow.isSideAttached
                ? (launcherWindow.baseLauncherWidth * animProgress)
                : launcherWindow.baseLauncherWidth
-        height: !launcherWindow.isSideAttached
-                ? (launcherWindow.baseLauncherHeight * animProgress)
-                : launcherWindow.baseLauncherHeight
 
-        opacity: (launcherWindow.isVisible || animProgress > 0.001) ? 1.0 : 0.0
+        height: {
+            if (launcherWindow.isCentered) {
+                let baseH = launcherWindow.collapsedCenterHeight;
+                let targetH = Math.max(baseH, launcherWindow.animatedLauncherHeight);
+                return baseH + (targetH - baseH) * animProgress;
+            }
+            if (!launcherWindow.isSideAttached) {
+                return launcherWindow.animatedLauncherHeight * animProgress;
+            }
+            return launcherWindow.animatedLauncherHeight;
+        }
+
+        opacity: launcherWindow.isCentered
+                 ? Math.max(0.0, Math.min(1.0, animProgress * 1.5))
+                 : ((launcherWindow.isVisible || animProgress > 0.001) ? 1.0 : 0.0)
+
+        transformOrigin: Item.Center
 
         Shape {
             visible: launcherWindow.attachEdge === "top" && container.dynamicCornerRadius > 0.5
@@ -885,7 +1261,7 @@ PanelWindow {
             radius: container.dynamicCornerRadius
             color: ThemeBackend.base
             border.width: 0
-            border.color: "transparent"
+            border.color: launcherWindow.isCentered ? Qt.alpha(ThemeBackend.surface2, 0.6) : "transparent"
             clip: true
 
             Rectangle {
@@ -960,16 +1336,23 @@ PanelWindow {
                 color: ThemeBackend.base
             }
 
-            ColumnLayout {
+            Item {
+                id: contentContainer
                 anchors.fill: parent
                 anchors.margins: launcherWindow.s(14)
-                spacing: launcherWindow.s(10)
+                visible: width > 0 && height > 0
+                clip: true
+
+                readonly property bool isSearchAtBottom: launcherWindow.attachEdge === "bottom"
 
                 Input {
                     id: searchInput
+                    z: 10
                     focus: true
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: launcherWindow.s(36)
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    y: contentContainer.isSearchAtBottom ? Math.max(0, parent.height - height) : 0
+                    height: launcherWindow.s(36)
 
                     baseColor: ThemeBackend.surface0
                     accentColor: ThemeBackend.mauve
@@ -980,14 +1363,39 @@ PanelWindow {
                     fontPixelSize: launcherWindow.s(12)
                     charSpacing: 1
 
-                    placeholderText: typeof I18n !== "undefined" ? I18n.t("applauncher.placeholder", "Start with > for a command...") : "Start with > for a command..."
+                    placeholderText: {
+                        if (launcherWindow.currentTabIndex === 1) {
+                            return typeof I18n !== "undefined" ? I18n.t("applauncher.placeholder_files", "Search files or enter path...") : "Search files or enter path...";
+                        }
+                        return typeof I18n !== "undefined" ? I18n.t("applauncher.placeholder", "Start with > for a command...") : "Start with > for a command...";
+                    }
                     showClearButton: true
 
                     onTextEdited: function(newText) {
-                        filterApps(newText);
+                        if (launcherWindow.currentTabIndex === 0) {
+                            filterApps(newText);
+                        } else {
+                            filterFiles(newText);
+                        }
                     }
-                    onCleared: filterApps("")
+                    onCleared: {
+                        if (launcherWindow.currentTabIndex === 0) {
+                            filterApps("");
+                        } else {
+                            filterFiles("");
+                        }
+                    }
 
+                    Keys.onTabPressed: function(event) {
+                        launcherWindow.currentTabIndex = (launcherWindow.currentTabIndex === 0 ? 1 : 0);
+                        tabSwitch.currentIndex = launcherWindow.currentTabIndex;
+                        event.accepted = true;
+                    }
+                    Keys.onBacktabPressed: function(event) {
+                        launcherWindow.currentTabIndex = (launcherWindow.currentTabIndex === 0 ? 1 : 0);
+                        tabSwitch.currentIndex = launcherWindow.currentTabIndex;
+                        event.accepted = true;
+                    }
                     Keys.onDownPressed: function(event) {
                         launcherWindow.isKeyboardNav = true;
                         keyboardNavTimer.restart();
@@ -1014,9 +1422,53 @@ PanelWindow {
                     }
                 }
 
+                Switch {
+                    id: tabSwitch
+                    z: 10
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    y: contentContainer.isSearchAtBottom
+                       ? (searchInput.y - height - launcherWindow.s(8))
+                       : (searchInput.y + searchInput.height + launcherWindow.s(8))
+                    height: launcherWindow.s(28)
+                    cornerRadius: ThemeBackend.borderRadius
+                    fontPixelSize: launcherWindow.s(11)
+                    baseColor: ThemeBackend.surface0
+                    accentColor: ThemeBackend.mauve
+                    textColor: ThemeBackend.text
+                    activeTextColor: ThemeBackend.crust
+                    options: [launcherWindow.tabAppsTitle, launcherWindow.tabFilesTitle]
+                    currentIndex: launcherWindow.currentTabIndex
+                    onValueChanged: function(index, value) {
+                        launcherWindow.currentTabIndex = index;
+                    }
+                    onToggled: function(index) {
+                        launcherWindow.currentTabIndex = index;
+                    }
+                }
+
                 Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
+                    id: listContainer
+                    z: 1
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    y: contentContainer.isSearchAtBottom ? 0 : (tabSwitch.y + tabSwitch.height + launcherWindow.s(8))
+                    height: contentContainer.isSearchAtBottom
+                            ? Math.max(0, tabSwitch.y - launcherWindow.s(8))
+                            : Math.max(0, parent.height - y)
+                    clip: true
+
+                    opacity: launcherWindow.isCentered
+                             ? Math.max(0.0, Math.min(1.0, (container.animProgress - 0.2) / 0.8))
+                             : 1.0
+
+                    NumberAnimation {
+                        id: scrollAnim
+                        target: appList
+                        property: "contentY"
+                        duration: 260
+                        easing.type: Easing.OutCubic
+                    }
 
                     ListView {
                         id: appList
@@ -1026,12 +1478,61 @@ PanelWindow {
                         spacing: launcherWindow.s(4)
                         currentIndex: 0
                         boundsBehavior: Flickable.StopAtBounds
+                        cacheBuffer: launcherWindow.s(500)
 
                         highlightFollowsCurrentItem: false
 
+                        function getItemY(idx) {
+                            return idx * (launcherWindow.s(44) + spacing);
+                        }
+
+                        function resetScroll() {
+                            scrollAnim.stop();
+                            contentY = 0;
+                        }
+
+                        onContentYChanged: {
+                            if (contentY < 0 && !moving && !flicking) {
+                                contentY = 0;
+                            }
+                        }
+
+                        function ensureVisible(idx, animated) {
+                            if (idx < 0 || appModel.count === 0) return;
+                            let itemH = launcherWindow.s(44);
+                            let step = itemH + spacing;
+                            let itemTop = idx * step;
+                            let itemBottom = itemTop + itemH;
+
+                            let curContentY = scrollAnim.running ? scrollAnim.to : contentY;
+                            let totalH = Math.max(0, appModel.count * step - spacing);
+                            let maxScroll = Math.max(0, totalH - height);
+                            let newContentY = curContentY;
+
+                            if (itemTop < curContentY) {
+                                newContentY = itemTop;
+                            } else if (itemBottom > curContentY + height) {
+                                newContentY = itemBottom - height;
+                            }
+
+                            newContentY = Math.max(0, Math.min(maxScroll, newContentY));
+
+                            if (Math.abs(newContentY - contentY) > 0.5) {
+                                if (animated) {
+                                    scrollAnim.stop();
+                                    scrollAnim.from = contentY;
+                                    scrollAnim.to = newContentY;
+                                    scrollAnim.start();
+                                } else {
+                                    scrollAnim.stop();
+                                    contentY = newContentY;
+                                }
+                            }
+                        }
+
                         onCurrentIndexChanged: {
                             if (currentIndex >= 0) {
-                                positionViewAtIndex(currentIndex, ListView.Contain);
+                                ensureVisible(currentIndex, launcherWindow.isKeyboardNav);
                             }
                         }
 
@@ -1039,182 +1540,221 @@ PanelWindow {
                             id: morphHighlight
                             parent: appList.contentItem
                             z: 0
-                            visible: appList.count > 0 && appList.currentIndex >= 0 && appList.currentItem !== null
+                            visible: opacity > 0.001
+                            opacity: (appList.count > 0 && appList.currentIndex >= 0)
+                                     ? launcherWindow.getItemOpacity(appList.currentIndex)
+                                     : 0.0
+                            Behavior on opacity {
+                                enabled: !itemsIntroSequence.running
+                                NumberAnimation {
+                                    duration: 170
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
                             x: 0
                             width: appList.width
                             height: launcherWindow.s(44)
                             radius: ThemeBackend.borderRadius
                             color: ThemeBackend.mauve
 
-                            property real targetY: (appList.currentIndex >= 0 && appList.currentItem) ? appList.currentItem.y : 0
+                            property real targetY: (appList.currentIndex >= 0 && appModel.count > 0)
+                                                   ? appList.getItemY(appList.currentIndex)
+                                                   : 0
                             y: targetY
 
+                            transform: Translate {
+                                x: launcherWindow.s(-20) * (1.0 - launcherWindow.getItemProgress(appList.currentIndex))
+                            }
+
                             Behavior on y {
+                                enabled: launcherWindow.isKeyboardNav
                                 NumberAnimation {
-                                    duration: 320
-                                    easing.type: Easing.OutQuint
+                                    duration: 260
+                                    easing.type: Easing.OutCubic
                                 }
                             }
                         }
 
                         delegate: Item {
                             id: delegateRoot
-                            width: ListView.view.width
+                            width: ListView.view ? ListView.view.width : 0
                             height: launcherWindow.s(44)
-                            clip: true
+                            clip: false
                             z: 1
 
                             property bool isSelected: index === appList.currentIndex
 
-                            scale: ma.pressed ? 0.98 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
-
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: ThemeBackend.borderRadius
-                                color: ThemeBackend.surface0
-                                opacity: ma.containsMouse && !delegateRoot.isSelected ? 0.45 : 0
-                                Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutSine } }
+                            opacity: launcherWindow.getItemOpacity(index)
+                            transform: Translate {
+                                x: launcherWindow.s(-20) * (1.0 - launcherWindow.getItemProgress(index))
                             }
 
-                            RowLayout {
+                            Item {
+                                id: delegateContent
                                 anchors.fill: parent
-                                anchors.margins: launcherWindow.s(6)
-                                anchors.leftMargin: launcherWindow.s(10) + (delegateRoot.isSelected ? launcherWindow.s(2) : 0)
-                                anchors.rightMargin: launcherWindow.s(10)
-                                spacing: launcherWindow.s(10)
 
-                                Behavior on anchors.leftMargin {
-                                    NumberAnimation { duration: 320; easing.type: Easing.OutQuint }
+                                scale: ma.pressed ? 0.98 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.2 } }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: ThemeBackend.borderRadius
+                                    color: ThemeBackend.surface0
+                                    opacity: ma.containsMouse && !delegateRoot.isSelected ? 0.45 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutSine } }
                                 }
 
-                                Item {
-                                    id: delegateIconArea
-                                    Layout.preferredWidth: launcherWindow.s(32)
-                                    Layout.preferredHeight: launcherWindow.s(32)
-                                    Layout.alignment: Qt.AlignVCenter
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: launcherWindow.s(6)
+                                    anchors.leftMargin: launcherWindow.s(10) + (delegateRoot.isSelected ? launcherWindow.s(2) : 0)
+                                    anchors.rightMargin: launcherWindow.s(10)
+                                    spacing: launcherWindow.s(10)
 
-                                    readonly property real boxRadius: launcherWindow.s(8)
-                                    readonly property real boxPadding: launcherWindow.s(4)
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        anchors.topMargin: launcherWindow.s(1.5)
-                                        anchors.bottomMargin: -launcherWindow.s(1.5)
-                                        radius: parent.boxRadius
-                                        color: Qt.rgba(0, 0, 0, 0.12)
+                                    Behavior on anchors.leftMargin {
+                                        NumberAnimation { duration: 220; easing.type: Easing.OutBack; easing.overshoot: 1.15 }
                                     }
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: parent.boxRadius
-                                        color: delegateRoot.isSelected ? Qt.tint(ThemeBackend.surface2, Qt.rgba(ThemeBackend.mauve.r, ThemeBackend.mauve.g, ThemeBackend.mauve.b, 0.2)) : ThemeBackend.surface2
+                                    Item {
+                                        id: delegateIconArea
+                                        Layout.preferredWidth: launcherWindow.s(32)
+                                        Layout.preferredHeight: launcherWindow.s(32)
+                                        Layout.alignment: Qt.AlignVCenter
 
-                                        Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                                    }
+                                        readonly property real boxRadius: launcherWindow.s(8)
+                                        readonly property real boxPadding: launcherWindow.s(4)
 
-                                    Rectangle {
-                                        id: iconContainer
-                                        anchors.fill: parent
-                                        anchors.margins: parent.boxPadding
-                                        radius: Math.max(0, parent.boxRadius - parent.boxPadding)
-                                        color: "transparent"
-                                        clip: true
-
-                                        Image {
-                                            id: delegateIcon
+                                        Rectangle {
                                             anchors.fill: parent
-                                            property bool failedLoad: false
+                                            anchors.topMargin: launcherWindow.s(1.5)
+                                            anchors.bottomMargin: -launcherWindow.s(1.5)
+                                            radius: parent.boxRadius
+                                            color: Qt.rgba(0, 0, 0, 0.12)
+                                        }
 
-                                            visible: (!model.fontIcon || model.fontIcon === "") && source !== "" && status === Image.Ready && !failedLoad
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: parent.boxRadius
+                                            color: delegateRoot.isSelected ? Qt.tint(ThemeBackend.surface2, Qt.rgba(ThemeBackend.mauve.r, ThemeBackend.mauve.g, ThemeBackend.mauve.b, 0.2)) : ThemeBackend.surface2
 
-                                            source: {
-                                                if (model.fontIcon && model.fontIcon !== "") return "";
-                                                let ic = model.icon || "";
-                                                if (!ic) return "";
-                                                if (ic.startsWith("file://") || ic.startsWith("image://") || ic.startsWith("http://") || ic.startsWith("https://")) return ic;
-                                                return ic.startsWith("/") ? "file://" + ic : "image://icon/" + ic;
-                                            }
+                                            Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                        }
 
-                                            sourceSize: Qt.size(64, 64)
-                                            fillMode: Image.PreserveAspectFit
-                                            asynchronous: true
-                                            smooth: true
-                                            mipmap: true
+                                        Rectangle {
+                                            id: iconContainer
+                                            anchors.fill: parent
+                                            anchors.margins: parent.boxPadding
+                                            radius: Math.max(0, parent.boxRadius - parent.boxPadding)
+                                            color: "transparent"
+                                            clip: true
 
-                                            onStatusChanged: {
-                                                if (status === Image.Error) {
-                                                    failedLoad = true;
+                                            Image {
+                                                id: delegateIcon
+                                                anchors.fill: parent
+                                                property bool failedLoad: false
+                                                cache: false
+
+                                                visible: (!model.fontIcon || model.fontIcon === "") && source !== "" && status === Image.Ready && !failedLoad
+
+                                                source: {
+                                                    if (model.fontIcon && model.fontIcon !== "") return "";
+                                                    let ic = model.icon || "";
+                                                    if (!ic) return "";
+                                                    if (ic.startsWith("file://") || ic.startsWith("image://") || ic.startsWith("http://") || ic.startsWith("https://")) return ic;
+                                                    if (ic.startsWith("/")) return "file://" + ic;
+
+                                                    let baseName = ic.replace(/\.(png|svg|xpm|ico)$/i, "");
+                                                    if (typeof Quickshell !== "undefined" && typeof Quickshell.iconPath === "function") {
+                                                        let resolved = Quickshell.iconPath(ic) || Quickshell.iconPath(baseName);
+                                                        if (resolved && resolved.length > 0) {
+                                                            return resolved.startsWith("/") ? ("file://" + resolved) : resolved;
+                                                        }
+                                                    }
+
+                                                    return "image://icon/" + baseName;
+                                                }
+
+                                                sourceSize: Qt.size(64, 64)
+                                                fillMode: Image.PreserveAspectFit
+                                                asynchronous: true
+                                                smooth: true
+                                                mipmap: true
+
+                                                onStatusChanged: {
+                                                    if (status === Image.Error) {
+                                                        failedLoad = true;
+                                                    }
                                                 }
                                             }
+
+                                            Text {
+                                                id: delegateFontIcon
+                                                anchors.centerIn: parent
+                                                visible: !delegateIcon.visible
+                                                text: {
+                                                    if (model.fontIcon && model.fontIcon !== "") return model.fontIcon;
+                                                    if (model.isCalc) return "󰃬";
+                                                    if (model.isCommand) return "󰆍";
+                                                    return "󰵆";
+                                                }
+                                                font.family: ThemeBackend.fontFamily
+                                                font.pixelSize: launcherWindow.s(16)
+                                                color: delegateRoot.isSelected ? ThemeBackend.mauve : ThemeBackend.subtext0
+                                                verticalAlignment: Text.AlignVCenter
+                                                horizontalAlignment: Text.AlignHCenter
+
+                                                Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
+                                            }
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        spacing: launcherWindow.s(1)
+
+                                        Text {
+                                            id: delegateText
+                                            Layout.fillWidth: true
+                                            text: model.name
+                                            font.family: ThemeBackend.fontFamily
+                                            font.pixelSize: launcherWindow.s(12)
+                                            font.weight: delegateRoot.isSelected ? Font.Bold : Font.Medium
+                                            color: delegateRoot.isSelected ? ThemeBackend.crust : ThemeBackend.text
+                                            elide: Text.ElideRight
+                                            verticalAlignment: Text.AlignVCenter
+
+                                            Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                         }
 
                                         Text {
-                                            id: delegateFontIcon
-                                            anchors.centerIn: parent
-                                            visible: !delegateIcon.visible
-                                            text: {
-                                                if (model.fontIcon && model.fontIcon !== "") return model.fontIcon;
-                                                if (model.isCalc) return "󰃬";
-                                                if (model.isCommand) return "󰆍";
-                                                return "󰵆";
-                                            }
+                                            id: delegateDesc
+                                            Layout.fillWidth: true
+                                            visible: model.description !== undefined && model.description !== null && model.description !== ""
+                                            text: model.description || ""
                                             font.family: ThemeBackend.fontFamily
-                                            font.pixelSize: launcherWindow.s(16)
-                                            color: delegateRoot.isSelected ? ThemeBackend.mauve : ThemeBackend.subtext0
+                                            font.pixelSize: launcherWindow.s(10)
+                                            font.weight: Font.Normal
+                                            color: delegateRoot.isSelected ? ThemeBackend.crust : ThemeBackend.subtext0
+                                            opacity: delegateRoot.isSelected ? 0.9 : 0.85
+                                            elide: Text.ElideRight
                                             verticalAlignment: Text.AlignVCenter
-                                            horizontalAlignment: Text.AlignHCenter
 
-                                            Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                            Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
                                         }
                                     }
                                 }
 
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    Layout.alignment: Qt.AlignVCenter
-                                    spacing: launcherWindow.s(1)
-
-                                    Text {
-                                        id: delegateText
-                                        Layout.fillWidth: true
-                                        text: model.name
-                                        font.family: ThemeBackend.fontFamily
-                                        font.pixelSize: launcherWindow.s(12)
-                                        font.weight: delegateRoot.isSelected ? Font.Bold : Font.Medium
-                                        color: delegateRoot.isSelected ? ThemeBackend.crust : ThemeBackend.text
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-
-                                        Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                                MouseArea {
+                                    id: ma
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        launcherWindow.isKeyboardNav = false;
+                                        appList.currentIndex = index;
+                                        activateIndex(index);
                                     }
-
-                                    Text {
-                                        id: delegateDesc
-                                        Layout.fillWidth: true
-                                        visible: model.description !== undefined && model.description !== null && model.description !== ""
-                                        text: model.description || ""
-                                        font.family: ThemeBackend.fontFamily
-                                        font.pixelSize: launcherWindow.s(10)
-                                        font.weight: Font.Normal
-                                        color: delegateRoot.isSelected ? ThemeBackend.crust : ThemeBackend.subtext0
-                                        opacity: delegateRoot.isSelected ? 0.9 : 0.85
-                                        elide: Text.ElideRight
-                                        verticalAlignment: Text.AlignVCenter
-
-                                        Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                id: ma
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    appList.currentIndex = index;
-                                    activateIndex(index);
                                 }
                             }
                         }

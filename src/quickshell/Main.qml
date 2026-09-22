@@ -5,6 +5,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
+import Quickshell.Bluetooth
+import Quickshell.Networking
 import "WindowRegistry.js" as Registry
 import "notifications" as Notifs
 
@@ -24,6 +26,54 @@ PanelWindow {
         context: Qt.WindowShortcut
         enabled: masterWindow.isVisible
         onActivated: switchWidget("hidden", "")
+    }
+
+    function resolveTargetScreen() {
+        try {
+            if (typeof Hyprland !== "undefined" && Hyprland.focusedMonitor) {
+                let monName = Hyprland.focusedMonitor.name;
+                let screens = Quickshell.screens || [];
+                let len = screens.length !== undefined ? screens.length : (screens.count !== undefined ? screens.count : 0);
+                for (let i = 0; i < len; i++) {
+                    let s = screens[i] !== undefined ? screens[i] : screens.get(i);
+                    if (s && s.name === monName) return s;
+                }
+            }
+        } catch (e) {}
+
+        try {
+            if (typeof ToplevelManager !== "undefined" && ToplevelManager.activeToplevel && ToplevelManager.activeToplevel.screens && ToplevelManager.activeToplevel.screens.length > 0) {
+                return ToplevelManager.activeToplevel.screens[0];
+            }
+        } catch (e) {}
+
+        if (masterWindow.screen) return masterWindow.screen;
+        return (Quickshell.screens && (Quickshell.screens.length > 0 || Quickshell.screens.count > 0))
+            ? (Quickshell.screens[0] || Quickshell.screens.get(0))
+            : null;
+    }
+
+    function reportWidgetState() {
+        if (typeof Caching === "undefined" || !Caching.runDir) return;
+        let sName = (masterWindow.currentActive === "hidden" || !masterWindow.screen) ? "" : (masterWindow.screen.name || "");
+        let payload = JSON.stringify({
+            widget: masterWindow.currentActive,
+            screen: sName
+        });
+        Quickshell.execDetached(["bash", "-c", "echo '" + payload + "' > " + Caching.runDir + "/current_widget"]);
+    }
+
+    Process {
+        id: startupResetProcess
+        command: ["bash", "-c", `[ -n "${Caching.runDir}" ] && echo '{"widget":"hidden","screen":""}' > "${Caching.runDir}/current_widget"`]
+        running: true
+    }
+
+    Connections {
+        target: (typeof Caching !== "undefined") ? Caching : null
+        function onRunDirChanged() {
+            masterWindow.reportWidgetState();
+        }
     }
 
     IpcHandler {
@@ -70,6 +120,25 @@ PanelWindow {
                     LauncherController.hide();
                     ClipboardController.toggle();
                 }
+                return;
+            }
+
+            if (cmd === "airplane" || targetWidget === "airplane" || cmd === "flight" || targetWidget === "flight") {
+                let isAirplane = !Networking.wifiEnabled && !(Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled);
+                if (isAirplane) {
+                    Networking.wifiEnabled = true;
+                    if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = true;
+                } else {
+                    Networking.wifiEnabled = false;
+                    if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = false;
+                }
+                return;
+            }
+
+            if (cmd === "autohide" || targetWidget === "autohide") {
+                let bar = Config.getSetting("bar", {});
+                bar.autohide = !bar.autohide;
+                Config.setSetting("bar", bar);
                 return;
             }
 
@@ -138,7 +207,10 @@ PanelWindow {
 
     visible: isVisible
 
-    mask: Region { item: topBarHole; intersection: Intersection.Xor }
+    mask: Region {
+        item: masterWindow.isCurrentDraggable ? animContainer : topBarHole
+        intersection: masterWindow.isCurrentDraggable ? Intersection.Combine : Intersection.Xor
+    }
 
     property var rawBarSettings: (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({})
     property string barPosition: (rawBarSettings && rawBarSettings.position !== undefined) ? rawBarSettings.position : "top"
@@ -155,6 +227,10 @@ PanelWindow {
 
     readonly property bool isBarEffectivelyHidden: barAutohide || isFullscreenActive
     readonly property bool screenReady: masterWindow.width >= 100 && masterWindow.height >= 100
+    readonly property bool isCurrentDraggable: {
+        let t = getLayout(masterWindow.currentActive);
+        return Boolean(t && t.draggable) || masterWindow.currentActive === "guide";
+    }
 
     Item {
         id: topBarHole
@@ -228,7 +304,7 @@ PanelWindow {
 
     MouseArea {
         anchors.fill: parent
-        enabled: masterWindow.isVisible
+        enabled: masterWindow.isVisible && !masterWindow.isCurrentDraggable
         onClicked: switchWidget("hidden", "")
     }
 
@@ -278,7 +354,14 @@ PanelWindow {
     }
 
     Component.onCompleted: {
+        reportWidgetState();
         preloadStaggerTimer.start();
+    }
+
+    Component.onDestruction: {
+        if (typeof Caching !== "undefined" && Caching.runDir) {
+            Quickshell.execDetached(["bash", "-c", "echo '{\"widget\":\"hidden\",\"screen\":\"\"}' > " + Caching.runDir + "/current_widget"]);
+        }
     }
 
     Timer {
@@ -302,13 +385,20 @@ PanelWindow {
     property string currentActive: "hidden"
 
     onCurrentActiveChanged: {
-        Quickshell.execDetached(["bash", "-c", "echo '" + currentActive + "' > " + Caching.runDir + "/current_widget"]);
+        reportWidgetState();
+    }
+
+    onScreenChanged: {
+        if (currentActive !== "hidden") {
+            reportWidgetState();
+        }
     }
 
     property bool isVisible: false
     property string activeArg: ""
     property bool disableMorph: true
     property int switchGeneration: 0
+    property bool userMoved: false
 
     property int morphDuration:       300
     property int morphDurationSwitch: 300
@@ -391,8 +481,10 @@ PanelWindow {
     function getLayout(name) {
         let bp = masterWindow.barPosition;
         let effHidden = masterWindow.isBarEffectivelyHidden;
+        let scrW = masterWindow.screen ? masterWindow.screen.width : masterWindow.width;
+        let scrH = masterWindow.screen ? masterWindow.screen.height : masterWindow.height;
 
-        let result = Registry.getLayout(name, 0, 0, masterWindow.width, masterWindow.height, masterWindow.globalUiScale, bp);
+        let result = Registry.getLayout(name, 0, 0, scrW, scrH, masterWindow.globalUiScale, bp);
         if (!result) return null;
 
         let scale = masterWindow.globalUiScale || 1.0;
@@ -405,7 +497,8 @@ PanelWindow {
                 h: result.h,
                 rx: result.rx,
                 ry: result.ry,
-                comp: result.comp
+                comp: result.comp,
+                draggable: result.draggable
             };
 
             if (bp === "top") {
@@ -458,8 +551,10 @@ PanelWindow {
 
     onTargetLayoutChanged: {
         if (!targetLayout || masterWindow.currentActive === "hidden" || !masterWindow.isVisible) return;
-        masterWindow._animX = targetLayout.x;
-        masterWindow._animY = targetLayout.y;
+        if (!masterWindow.userMoved || !masterWindow.isCurrentDraggable) {
+            masterWindow._animX = targetLayout.x;
+            masterWindow._animY = targetLayout.y;
+        }
         masterWindow._animW = targetLayout.w;
         masterWindow._animH = targetLayout.h;
         masterWindow._stageW = targetLayout.w;
@@ -477,6 +572,34 @@ PanelWindow {
         width: masterWindow._animW
         height: masterWindow._animH
         clip: true
+
+        DragHandler {
+            id: windowDragHandler
+            target: null
+            acceptedButtons: Qt.LeftButton
+            enabled: masterWindow.isCurrentDraggable
+
+            property real startX: 0
+            property real startY: 0
+
+            onActiveChanged: {
+                if (active) {
+                    masterWindow.disableMorph = true;
+                    startX = masterWindow._animX;
+                    startY = masterWindow._animY;
+                } else {
+                    masterWindow.disableMorph = false;
+                }
+            }
+
+            onTranslationChanged: {
+                if (active) {
+                    masterWindow.userMoved = true;
+                    masterWindow._animX = startX + translation.x;
+                    masterWindow._animY = startY + translation.y;
+                }
+            }
+        }
 
         Item {
             id: contentStage
@@ -550,6 +673,10 @@ PanelWindow {
         let gen = masterWindow.switchGeneration;
         masterWindow.targetActive = newWidget;
 
+        if (newWidget !== "guide") {
+            masterWindow.userMoved = false;
+        }
+
         if (delayedClear.running) {
             delayedClear.stop();
         }
@@ -565,12 +692,21 @@ PanelWindow {
                 delayedClear.restart();
             }
         } else {
+            let targetScreen = resolveTargetScreen();
+            if (targetScreen && masterWindow.screen !== targetScreen) {
+                masterWindow.screen = targetScreen;
+            }
             executeSwitch(newWidget, arg, gen);
         }
     }
 
     function executeSwitch(newWidget, arg, gen) {
         if (gen !== masterWindow.switchGeneration || newWidget === "hidden") return;
+
+        let targetScreen = resolveTargetScreen();
+        if (targetScreen && masterWindow.screen !== targetScreen) {
+            masterWindow.screen = targetScreen;
+        }
 
         let t = getLayout(newWidget);
         if (!t || !t.w || !t.h || t.w < 10 || t.h < 10) {
@@ -607,8 +743,10 @@ PanelWindow {
         let finalX = (finalW !== t.w) ? recenterX(t, finalW) : t.rx;
         let finalY = t.ry;
 
-        masterWindow._animX = finalX;
-        masterWindow._animY = finalY;
+        if (!masterWindow.userMoved || !masterWindow.isCurrentDraggable) {
+            masterWindow._animX = finalX;
+            masterWindow._animY = finalY;
+        }
         masterWindow._animW = finalW;
         masterWindow._animH = finalH;
         masterWindow._stageW = finalW;

@@ -7,7 +7,6 @@ import Quickshell.Io
 import QtQuick.Window
 import "../"
 import "../reusables"
-import "../singletons"
 
 Item {
     id: window
@@ -112,6 +111,12 @@ Item {
         introClock = 0;
         introCalendar = 0;
         introWeather = 0;
+        transitionSpin = 0.0;
+        transitionScale = 1.0;
+        weatherContentOpacity = 1.0;
+        weatherContentOffset = 0.0;
+        calendarContentOpacity = 1.0;
+        calendarContentOffset = 0.0;
         introAnim.restart();
     }
 
@@ -126,12 +131,20 @@ Item {
         } else {
             introAnim.stop();
             exitAnim.stop();
+            weatherTransitionAnim.stop();
+            calendarTransitionAnim.stop();
             startupComplete = false;
             introMain = 0;
             introAmbient = 0;
             introClock = 0;
             introCalendar = 0;
             introWeather = 0;
+            transitionSpin = 0.0;
+            transitionScale = 1.0;
+            weatherContentOpacity = 1.0;
+            weatherContentOffset = 0.0;
+            calendarContentOpacity = 1.0;
+            calendarContentOffset = 0.0;
         }
     }
 
@@ -178,7 +191,7 @@ Item {
 
     property real globalOrbitOffset: 0
     NumberAnimation on globalOrbitOffset {
-        from: 0; to: -540; duration: 90000; loops: Animation.Infinite; running: window.visible
+        from: 0; to: -360; duration: 60000; loops: Animation.Infinite; running: window.visible
     }
 
     property real globalOscPhase: 0
@@ -284,6 +297,10 @@ Item {
         if (weatherTransitionAnim.running) {
             weatherTransitionAnim.stop();
             window.weatherView = window.targetWeatherView;
+            window.transitionSpin = 0.0;
+            window.transitionScale = 1.0;
+            window.weatherContentOpacity = 1.0;
+            window.weatherContentOffset = 0.0;
         }
 
         window.weatherAnimDirection = idx > window.weatherView ? 1 : -1;
@@ -301,7 +318,10 @@ Item {
 
         for (let i = 0; i < hrArr.length; i++) {
             let timeStr = hrArr[i].time || "00:00";
-            let h = parseInt(timeStr.split(":")[0]);
+            let parts = timeStr.trim().split(" ");
+            let clockPart = parts.length > 1 && parts[0].includes("-") ? parts[1] : parts[0];
+            let h = parseInt(clockPart.split(":")[0]);
+            if (isNaN(h)) h = 0;
             let diff = Math.abs(h - ch);
             if (diff < minDiff) {
                 minDiff = diff;
@@ -345,6 +365,8 @@ Item {
         if (calendarTransitionAnim.running) {
             calendarTransitionAnim.stop();
             window.monthOffset = window.targetMonthOffset;
+            window.calendarContentOpacity = 1.0;
+            window.calendarContentOffset = 0.0;
         }
 
         window.calendarAnimDirection = newOffset > window.targetMonthOffset ? 1 : -1;
@@ -364,7 +386,7 @@ Item {
         let isRealCurrentMonth = (actualToday.getMonth() === targetMonth && actualToday.getFullYear() === targetYear);
         let todayDate = actualToday.getDate();
 
-        window.targetMonthName = Qt.formatDateTime(d, "MMMM yyyy");
+        window.targetMonthName = d.toLocaleDateString(Qt.locale(I18n.currentLang), "MMMM yyyy");
 
         let firstDay = new Date(targetYear, targetMonth, 1).getDay();
         firstDay = (firstDay === 0) ? 6 : firstDay - 1;
@@ -672,15 +694,19 @@ Item {
                             property real osc: isToday ? (Math.sin(window.globalOscPhase + index) * 2.5) : 0
                             property real rad: (targetAngleDeg + orbitOffset + osc + window.transitionSpin) * (Math.PI / 180)
 
+                            property real depthFactor: (Math.sin(rad) + 1.0) / 2.0
+
                             x: Math.cos(rad) * rx - width / 2
                             y: Math.sin(rad) * ry - height / 2
-                            z: Math.sin(rad) * window.s(100)
+                            z: isHighlighted ? (Math.sin(rad) * window.s(100) + 10) : (Math.sin(rad) * window.s(100))
 
-                            property real baseScale: isHighlighted ? 1.35 : (isToday ? (0.95 + 0.20 * Math.sin(rad)) : (0.90 + 0.25 * Math.sin(rad)))
-                            scale: baseScale * (hrMa.containsMouse && !isHighlighted ? 1.04 : 1.0)
-                            Behavior on scale { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+                            property real baseScale: isHighlighted ? (0.80 + 0.55 * depthFactor) : (0.68 + 0.42 * depthFactor)
+                            property real hoverScale: hrMa.containsMouse && !isHighlighted ? 1.04 : 1.0
+                            Behavior on hoverScale { NumberAnimation { duration: 150 } }
 
-                            opacity: isHighlighted ? 1.0 : (isToday ? (0.7 + 0.3 * ((Math.sin(rad) + 1) / 2)) : (0.65 + 0.35 * ((Math.sin(rad) + 1) / 2)))
+                            scale: baseScale * hoverScale
+
+                            opacity: isHighlighted ? (0.75 + 0.25 * depthFactor) : (0.55 + 0.45 * depthFactor)
 
                             width: window.s(52)
                             height: window.s(86)
@@ -928,10 +954,10 @@ Item {
 
                         Text {
                             Layout.alignment: Qt.AlignRight
-                            text: Math.round(window.displayedTemp) + (Weather.unitSym || "°")
+                            text: window.displayedTemp.toFixed(1) + (Weather.unitSym || "°")
                             font.family: ThemeBackend.fontFamily
                             font.weight: Font.Black
-                            font.pixelSize: window.s(72)
+                            font.pixelSize: window.s(68)
                             color: window.tempGlowColor
                             style: Text.Outline
                             styleColor: window.isTempAnimating ? Qt.alpha(window.tempGlowColor, 0.5) : Qt.alpha(window.crust, 0.4)

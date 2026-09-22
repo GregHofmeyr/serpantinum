@@ -10,6 +10,7 @@
 , bc
 , bluez
 , brightnessctl
+, ddcutil
 , cava
 , cliphist
 , easyeffects
@@ -39,6 +40,7 @@
 , satty
 , slurp
 , socat
+, util-linux
 , wf-recorder
 , wget
 , wireplumber
@@ -50,7 +52,7 @@
 , quickshell
 , libpulseaudio
 , pipewire
-, rev ? "dirty"
+, ...
 }:
 let
   pname = "serpantinum";
@@ -62,6 +64,7 @@ let
     bc
     bluez
     brightnessctl
+    ddcutil
     cava
     cliphist
     easyeffects
@@ -92,6 +95,7 @@ let
     satty
     slurp
     socat
+    util-linux
     wf-recorder
     wget
     wireplumber
@@ -100,7 +104,7 @@ let
     wmctrl
     xdg-desktop-portal-gtk
     zbar
-    quickshell		
+    quickshell
   ];
   qtDeps = [
     quickshell
@@ -130,6 +134,7 @@ stdenv.mkDerivation (finalAttrs: {
     mkdir -p "$out/bin" "$out/share/${finalAttrs.pname}"
     cp -r src/. "$out/share/${finalAttrs.pname}/"
     cp -r config "$out/share/${finalAttrs.pname}/config"
+    cp version.txt "$out/share/${finalAttrs.pname}/version.txt"
     find "$out/share/${finalAttrs.pname}" -type f \( -name "*.sh" -o -name "*.py" \) -exec chmod +x {} +
     install -Dm755 bin/serpantinum  "$out/bin/.serpantinum-wrapped"
     install -Dm755 bin/serpantinumd "$out/bin/.serpantinumd-wrapped"
@@ -143,7 +148,6 @@ stdenv.mkDerivation (finalAttrs: {
         --prefix QT_PLUGIN_PATH : "${qtPluginPath}" \
         --set SERPANTINUM_DIR "$out/share/${finalAttrs.pname}" \
         --set SERPANTINUM_VERSION "${finalAttrs.version}" \
-        --set SERPANTINUM_REV "${rev}" \
         --prefix PATH : "${lib.makeBinPath pathDeps}"
     done
   '';

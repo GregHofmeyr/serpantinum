@@ -21,6 +21,9 @@ Item {
     property real maxAspect: 1.0
     property bool isRound: true
 
+    property var player: MprisController.activePlayer
+    property bool isMediaActive: player !== null && player.playbackState !== MprisPlaybackState.Stopped && player.trackTitle !== ""
+
     property bool isVisVisible: visible
 
     onIsVisVisibleChanged: {
@@ -98,7 +101,7 @@ Item {
             height: width
             radius: width / 2
             color: ThemeBackend.mauve
-            opacity: 0.005 + (root.bassLevel * 0.035)
+            opacity: (root.isMediaActive && MprisController.isPlaying) ? (0.005 + (root.bassLevel * 0.035)) : 0.0
             scale: 0.985 + (root.bassLevel * 0.0375)
 
             Behavior on opacity {
@@ -123,7 +126,7 @@ Item {
             height: width
             radius: width / 2
             color: ThemeBackend.mauve
-            opacity: 0.01 + (root.kickLevel * 0.055)
+            opacity: (root.isMediaActive && MprisController.isPlaying) ? (0.01 + (root.kickLevel * 0.055)) : 0.0
             scale: 0.992 + (root.kickLevel * 0.02625)
 
             Behavior on opacity {
@@ -188,9 +191,9 @@ Item {
             height: root.artRadius * 2
 
             property real borderWidth: 0
-            property real targetScale: 1.0 + (root.bassLevel * 0.0135) + (root.kickLevel * 0.027)
-            property real targetBounceY: -(root.kickLevel * root.artRadius * 0.02025)
-            property real targetTilt: (root.bassLevel - 0.3) * 0.9
+            property real targetScale: (root.isMediaActive && MprisController.isPlaying) ? (1.0 + (root.bassLevel * 0.0135) + (root.kickLevel * 0.027)) : 0.95
+            property real targetBounceY: (root.isMediaActive && MprisController.isPlaying) ? -(root.kickLevel * root.artRadius * 0.02025) : 0
+            property real targetTilt: (root.isMediaActive && MprisController.isPlaying) ? (root.bassLevel - 0.3) * 0.9 : 0
 
             anchors.verticalCenterOffset: targetBounceY
             rotation: targetTilt
@@ -226,7 +229,7 @@ Item {
                 radius: width / 2
                 color: ThemeBackend.surface1
                 border.width: discContainer.borderWidth
-                border.color: MprisController.isPlaying ? (ThemeBackend.mauve || "#cba6f7") : (ThemeBackend.overlay0 || "#6c7086")
+                border.color: (root.isMediaActive && MprisController.isPlaying) ? (ThemeBackend.mauve || "#cba6f7") : (ThemeBackend.overlay0 || "#6c7086")
                 Behavior on border.color { ColorAnimation { duration: 500 } }
 
                 NumberAnimation on rotation {
@@ -235,7 +238,7 @@ Item {
                     duration: 24000
                     loops: Animation.Infinite
                     running: true
-                    paused: !MprisController.isPlaying
+                    paused: !(root.isMediaActive && MprisController.isPlaying)
                 }
 
                 Item {
@@ -245,7 +248,7 @@ Item {
                     Image {
                         id: artImg
                         anchors.fill: parent
-                        source: MprisController.artUrl ? (MprisController.artUrl.startsWith("file://") || MprisController.artUrl.startsWith("http") ? MprisController.artUrl : "file://" + MprisController.artUrl) : ""
+                        source: (root.isMediaActive && MprisController.artUrl) ? (MprisController.artUrl.startsWith("file://") || MprisController.artUrl.startsWith("http") ? MprisController.artUrl : "file://" + MprisController.artUrl) : ""
                         fillMode: Image.PreserveAspectCrop
                         visible: false
                     }
@@ -263,7 +266,7 @@ Item {
                         source: artImg
                         maskEnabled: true
                         maskSource: maskRect
-                        opacity: artImg.status === Image.Ready ? 1.0 : 0.0
+                        opacity: (root.isMediaActive && artImg.status === Image.Ready && MprisController.artUrl !== "") ? 1.0 : 0.0
 
                         Behavior on opacity {
                             NumberAnimation { duration: 600 }
@@ -275,7 +278,7 @@ Item {
                         anchors.fill: parent
                         radius: width / 2
                         color: ThemeBackend.mantle
-                        opacity: artImg.status === Image.Ready ? 0.0 : 1.0
+                        opacity: (root.isMediaActive && artImg.status === Image.Ready && MprisController.artUrl !== "") ? 0.0 : 1.0
 
                         Behavior on opacity {
                             NumberAnimation { duration: 400 }
@@ -293,7 +296,7 @@ Item {
                         anchors.fill: parent
                         radius: width / 2
                         color: Qt.rgba(ThemeBackend.mauve.r, ThemeBackend.mauve.g, ThemeBackend.mauve.b, 0.08 + (root.kickLevel * 0.08))
-                        opacity: artImg.status === Image.Ready ? 1.0 : 0.0
+                        opacity: (root.isMediaActive && artImg.status === Image.Ready && MprisController.artUrl !== "") ? 1.0 : 0.0
 
                         Behavior on opacity {
                             NumberAnimation { duration: 600 }

@@ -35,7 +35,14 @@
       "wellbeing": "Wellbeing",
       "tutorial": "Tutorial",
       "update": "Update",
-      "about": "About"
+      "about": "About",
+      "display_widgets": "Widgets",
+      "display_general": "General",
+      "osd": "On-Screen Display",
+      "dock": "Dock",
+      "bar_general": "General",
+      "bar_modules": "Modules",
+      "bar_side_modules": "Side modules"
     },
     "launcher": {
       "position": {
@@ -44,7 +51,8 @@
         "top": "Top",
         "bottom": "Bottom",
         "left": "Left",
-        "right": "Right"
+        "right": "Right",
+        "center": "Center"
       },
       "width": {
         "title": "Launcher width",
@@ -77,7 +85,9 @@
         "bottom_right": "Bottom right",
         "bottom_left": "Bottom left",
         "top_center": "Top center",
-        "bottom_center": "Bottom center"
+        "bottom_center": "Bottom center",
+        "select_on_screen": "Select on screen...",
+        "close_selector": "Close the selector"
       },
       "sound": {
         "title": "Notification sound",
@@ -90,7 +100,9 @@
       "empty_graphic": {
         "title": "Empty center animation",
         "desc": "Display the sleeping cat graphic in the notification center when empty"
-      }
+      },
+      "test": "Test notification",
+      "test_desc": "This is a test notification"
     },
     "idle": {
       "enabled": {
@@ -216,6 +228,10 @@
         "title": "Copy settings",
         "desc": "Copy configuration JSON to clipboard",
         "button": "Copy settings"
+      },
+      "screenshot_on_release": {
+        "title": "Capture region on mouse release",
+        "desc": "Take the screenshot as soon as you finish dragging, without clicking the shutter"
       }
     },
     "display": {
@@ -229,7 +245,7 @@
       },
       "schedule": {
         "title": "Automated schedule",
-        "desc": "Adjust color temperature automatically based on sunset and sunrise"
+        "desc": "Adjust color temperature automatically based on sunset and sunrise in"
       },
       "temperature": {
         "title": "Color temperature",
@@ -242,14 +258,36 @@
       "widgets": {
         "title": "Desktop widgets",
         "desc": "Configure and place widgets for this monitor",
-        "open": "Open redactor"
+        "open": "Open redactor",
+        "hide_bar": {
+          "title": "Hide the bar in the redactor",
+          "desc": "Automatically hide the bar when editing widgets in redactor mode"
+        },
+        "hide_presets": "Hide Presets",
+        "choose_preset": "Choose a preset",
+        "presets": {
+          "title": "Widget Presets"
+        },
+        "save_preset": {
+          "title": "Save Preset"
+        },
+        "preset_name_placeholder": "Enter preset name..."
       }
     },
     "bar": {
       "modules": {
         "vis": "Visualizer (cava)",
         "actions": "Actions",
-        "workspaces": "Workspaces",
+        "workspaces": {
+          "style": {
+            "name": {
+              "pills": "Pills",
+              "numbers": "Numbers",
+              "pacman": "Pacman"
+            }
+          },
+          "name": "Workspaces"
+        },
         "media": "Media",
         "tray": "Tray",
         "keyboard": "Keyboard",
@@ -259,7 +297,16 @@
         "battery": "Battery",
         "focus": "Focus",
         "sysmon": "System monitor",
-        "timedate": "Time/date",
+        "timedate": {
+          "name": "Time & Date",
+          "style": {
+            "name": {
+              "classic": "Classic",
+              "material": "Material",
+              "badge": "Dot Matrix"
+            }
+          }
+        },
         "info": "Recording/timer",
         "weather": "Weather"
       },
@@ -277,7 +324,8 @@
       },
       "workspaces": {
         "title": "Choose an amount of workspaces to display",
-        "disc": "Note: this doesn't affect the actual amount of workspaces in the compositor"
+        "disc": "Note: this doesn't affect the actual amount of workspaces in the compositor",
+        "desc": "Number of workspaces to display"
       },
       "opacity": {
         "title": "Bar opacity",
@@ -314,6 +362,16 @@
         "left": "Left",
         "center": "Center",
         "right": "Right"
+      },
+      "distinct_pills": {
+        "title": "Enable a modular and compact style for widgets",
+        "desc": "Makes bar's modules have an outlining rectangle and shrink their size to fit the modular look"
+      },
+      "timedate": {
+        "show_date": {
+          "title": "Show Date",
+          "desc": "Display the date text alongside the clock"
+        }
       }
     },
     "theme": {
@@ -452,7 +510,134 @@
         "excluded_apps_desc": "Exclude apps from overall tracking going forward"
       }
     },
-    "update_available": "Update available"
+    "update_available": "Update available",
+    "osd": {
+      "capslock": {
+        "title": "Show on Caps Lock"
+      },
+      "numlock": {
+        "title": "Show on Num Lock"
+      },
+      "airplane": {
+        "title": "Show on Airplane Mode"
+      },
+      "attach_bar": {
+        "title": "Attach to the bar in solid/fill style",
+        "desc": "Snap OSD popups to the status bar in solid or fill mode. When disabled, the OSD always stays in the configured position."
+      },
+      "test": "Test OSD",
+      "position": {
+        "title": "Screen position of On-Screen Display",
+        "desc": "Drag the preview box to change position",
+        "select_on_screen": "Select on screen...",
+        "close_selector": "Close the selector",
+        "bottom_center": "Bottom Center",
+        "bottom_left": "Bottom Left",
+        "bottom_right": "Bottom Right",
+        "top_center": "Top Center",
+        "top_left": "Top Left",
+        "top_right": "Top Right"
+      },
+      "orientation": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
+      }
+    },
+    "common": {
+      "show_bar": "Show bar",
+      "unavailable": "Unavailable"
+    },
+    "position": {
+      "custom": "Custom"
+    },
+    "dock": {
+      "enabled": {
+        "title": "Enable dock",
+        "desc": "Enable floating application dock"
+      },
+      "position": {
+        "title": "Dock position",
+        "desc": "Select the screen edge to anchor the dock",
+        "bottom": "Bottom",
+        "top": "Top",
+        "left": "Left",
+        "right": "Right"
+      },
+      "elements": {
+        "title": "Number of elements",
+        "desc": "Total app shortcuts displayed on the dock"
+      },
+      "size": {
+        "title": "Element size",
+        "desc": "Dimensions of individual app buttons in pixels"
+      },
+      "autohide": {
+        "title": "Auto-hide",
+        "desc": "Hide the dock when not hovering over the screen edge"
+      },
+      "timeout": {
+        "title": "Auto-hide delay",
+        "desc": "Duration before hiding after pointer leaves"
+      },
+      "floating": {
+        "title": "Floating dock",
+        "desc": "Detach dock from screen edge with rounded corners"
+      },
+      "transparency": {
+        "title": "Dock transparency",
+        "desc": "Adjust dock background opacity level"
+      },
+      "apps": {
+        "title": "Dock Applications",
+        "singular": "app",
+        "plural": "apps",
+        "shuffle": "Shuffle Apps",
+        "empty": "No applications configured for the dock",
+        "enter_edit": "Edit",
+        "exit_edit": "Exit edit mode"
+      },
+      "picker": {
+        "search": "Search apps...",
+        "done": "Done",
+        "empty": "No matching applications"
+      },
+      "opacity": {
+        "title": "Dock opacity",
+        "desc": "Adjust dock background opacity level"
+      },
+      "override_bounds": {
+        "title": "Override out-of-screen-bounds size correction",
+        "desc": "Keep custom element size even if dock exceeds screen limits"
+      },
+      "scrolling": {
+        "title": "Enable element scrolling",
+        "desc": "Limit visible elements and allow mouse wheel or touchpad scrolling"
+      },
+      "visible_elements": {
+        "title": "Visible elements",
+        "desc": "Number of dock items visible at the same time"
+      },
+      "hover_scale": {
+        "title": "Hover scale effect",
+        "desc": "Magnification level when hovering over dock items"
+      },
+      "cascade_scale": {
+        "title": "Scale nearest elements",
+        "desc": "Cascading magnification on neighboring icons"
+      },
+      "exclusive": {
+        "title": "Exclusive mode",
+        "desc": "Prevent windows from taking space occupied by the dock"
+      },
+      "on_top": {
+        "title": "Place dock on top of windows",
+        "desc": "Keep the dock visible above application windows"
+      },
+      "smart_autohide": {
+        "title": "Smart auto-hide",
+        "desc": "Auto-hide dock only when windows are open, keep visible on desktop"
+      }
+    }
   },
   "sysnotif": {
     "battery": {
@@ -482,7 +667,10 @@
   },
   "applauncher": {
     "search": "Search",
-    "placeholder": "Start with > for a command..."
+    "placeholder": "Start with > for a command...",
+    "tab_applications": "Applications",
+    "tab_files": "Files",
+    "placeholder_files": "Search files or enter path..."
   },
   "calendar": {
     "loading": "Loading...",
@@ -822,13 +1010,20 @@
     "redactor": {
       "no_widgets_active": "No widgets active",
       "click_to_add": "Click a widget icon in the bottom toolbar to add it",
-      "done": "Done"
+      "done": "Done",
+      "widget_singular": "widget",
+      "widgets_plural": "widgets",
+      "widgets_short": "w"
     },
     "types": {
       "clock": "Clock",
       "music": "Music",
       "weather": "Weather",
-      "image": "Image"
+      "image": "Image",
+      "visualizer": "Visualizer",
+      "user": "User",
+      "usage": "Usage",
+      "battery": "Battery"
     },
     "variants": {
       "digital": "Digital",
@@ -838,7 +1033,24 @@
       "round": "Round",
       "compact": "Compact",
       "rect": "Rect",
-      "rounded": "Rounded"
+      "rounded": "Rounded",
+      "bars": "Bars",
+      "continuous": "Continuous",
+      "default": "Default",
+      "material": "Material",
+      "materialAnalog": "Material Analog",
+      "lumen": "Lumen"
+    },
+    "presets": {
+      "minimal": {
+        "name": "Minimal"
+      },
+      "media_station": {
+        "name": "Media station"
+      },
+      "dashboard": {
+        "name": "Dashboard"
+      }
     }
   },
   "cli": {
@@ -1026,5 +1238,8 @@
     "auto_paste_sub": "If disabled — translation is only copied to clipboard",
     "keep_clipboard": "Keep translation in clipboard",
     "keep_clipboard_sub": "If disabled — original clipboard content is restored after paste"
+  },
+  "datetime": {
+    "full_date": "dddd, MMMM dd"
   }
 }

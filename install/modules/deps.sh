@@ -48,7 +48,7 @@ SUPPORTED_DISTROS=(
 REQUIRED_PKGS=(
     "kitty" "cava" "zbar" "pavucontrol" "alsa-utils"
     "wl-clipboard" "fd" "qt6-multimedia" "qt6-5compat" "ripgrep"
-    "cliphist" "jq" "socat" "inotify-tools" "pamixer" "brightnessctl" "acpi" "iw"
+    "cliphist" "jq" "socat" "inotify-tools" "pamixer" "brightnessctl" "ddcutil" "acpi" "iw"
     "bluez" "bluez-utils" "libnotify" "networkmanager" "lm_sensors" "bc" "matugen"
     "pipewire" "wireplumber" "pipewire-pulse" "pipewire-alsa" "libpulse" "python"
     "imagemagick" "wget" "file" "git" "psmisc"
@@ -167,6 +167,9 @@ install_fonts() {
 }
 
 install_dependencies() {
+    local install_state="${1:-$INSTALL_STATE}"
+    local is_reinstall="${2:-$IS_REINSTALL}"
+    shift 2 2>/dev/null || true
     local compositors=("$@")
 
     if pacman -Qq quickshell-git &>/dev/null; then
@@ -182,8 +185,10 @@ install_dependencies() {
         target_list+=("sddm" "qt6-declarative" "qt6-svg")
     fi
 
-    echo -e "\n\e[36m[ INFO ]\e[0m $(t "installer.deps.syncing")"
-    sudo pacman -Syyu --noconfirm
+    if [[ ("$install_state" == "fresh" || "$install_state" == "legacy") && "$is_reinstall" != "true" ]]; then
+        echo -e "\n\e[36m[ INFO ]\e[0m $(t "installer.deps.syncing")"
+        sudo pacman -Syyu --noconfirm
+    fi
 
     local missing_raw
     missing_raw=$(pacman -T "${target_list[@]}" 2>/dev/null || true)
