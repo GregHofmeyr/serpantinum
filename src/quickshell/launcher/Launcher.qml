@@ -206,7 +206,7 @@ PanelWindow {
         "position": "top",
         "width": 600,
         "itemCount": 6,
-        "terminalCommand": "ghostty -e",
+        "terminalCommand": "kitty -e",
         "smartRanking": true,
         "editorCommand": "code",
         "editorInTerminal": false
@@ -226,7 +226,7 @@ PanelWindow {
     property string launcherPosition: (rawLauncherSettings && rawLauncherSettings.position !== undefined) ? rawLauncherSettings.position : "top"
     property real customWidth: (rawLauncherSettings && rawLauncherSettings.width !== undefined && !isNaN(rawLauncherSettings.width) && rawLauncherSettings.width > 0) ? rawLauncherSettings.width : 600
     property int customItemCount: (rawLauncherSettings && rawLauncherSettings.itemCount !== undefined && !isNaN(rawLauncherSettings.itemCount) && rawLauncherSettings.itemCount > 0) ? rawLauncherSettings.itemCount : 6
-    property string terminalCommand: (rawLauncherSettings && rawLauncherSettings.terminalCommand !== undefined) ? rawLauncherSettings.terminalCommand : "ghostty -e"
+    property string terminalCommand: (rawLauncherSettings && rawLauncherSettings.terminalCommand !== undefined) ? rawLauncherSettings.terminalCommand : "kitty -e"
     property bool smartRanking: (rawLauncherSettings && rawLauncherSettings.smartRanking !== undefined) ? rawLauncherSettings.smartRanking : true
     // Open-in-editor (Shift+Enter on a file/dir result). editorCommand falls back to
     // $VISUAL/$EDITOR then "code"; set editorInTerminal + a terminal editor (e.g. "nvim")
