@@ -51,7 +51,9 @@ Item {
 
     Timer {
         id: fetchTimer
-        interval: 2000
+        interval: 8000  // Greg fork perf patch 2026-10-05: 2000→8000ms. Each poll kicks a 600ms
+                        // fill-tween repaint; 2s polling = near-constant repaint churn. 8s is plenty
+                        // for system metrics and slashes the leftover render load (dual-monitor+reverse-PRIME).
         repeat: true
         running: false
         onTriggered: {
