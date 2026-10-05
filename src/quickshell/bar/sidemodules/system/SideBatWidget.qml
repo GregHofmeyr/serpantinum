@@ -65,7 +65,8 @@ Rectangle {
         to: Math.PI * 2
         duration: sideBatRoot.isCharging ? 1800 : 3600
         loops: Animation.Infinite
-        running: sideBatRoot.showLayout && sideBatRoot.moduleActive
+        // Greg fork perf patch (2026-10-05): DISABLED (per-frame Canvas repaint). See SysMonWidget.
+        running: false
     }
 
     Timer {

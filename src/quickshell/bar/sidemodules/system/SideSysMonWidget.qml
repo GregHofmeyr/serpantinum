@@ -66,7 +66,8 @@ Rectangle {
         to: Math.PI * 2
         duration: 1800
         loops: Animation.Infinite
-        running: sideSysMonRoot.isSysVisible
+        // Greg fork perf patch (2026-10-05): DISABLED (per-frame Canvas repaint). See SysMonWidget.
+        running: false
     }
 
     Timer {

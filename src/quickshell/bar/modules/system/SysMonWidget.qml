@@ -61,7 +61,11 @@ Rectangle {
         to: Math.PI * 2
         duration: 1800
         loops: Animation.Infinite
-        running: sysMonWidgetRoot.isSysVisible
+        // Greg fork perf patch (2026-10-05): DISABLED. This drove a per-frame
+        // pillCanvas.requestPaint() (CPU-rasterised QML Canvas) → ~60% CPU with
+        // sysmon on, murder on dual-monitor + reverse-PRIME. Fill still updates on
+        // value change (onFillRatioChanged); we just lose the liquid-wave ripple.
+        running: false
     }
 
     Timer {
