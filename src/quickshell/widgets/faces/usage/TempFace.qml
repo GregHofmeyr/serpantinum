@@ -43,7 +43,8 @@ Item {
         to: Math.PI * 2
         duration: 1800
         loops: Animation.Infinite
-        running: root.visible
+        // Greg fork perf patch 2026-10-06: wave off (per-frame Canvas repaint; brutal on dual-monitor+reverse-PRIME)
+        running: false
     }
 
     property real rawTemp: isNaN(SysData.temp) ? 0.0 : SysData.temp
