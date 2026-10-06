@@ -355,23 +355,41 @@ Item {
                         root.maxYear = Math.max(...parsedYears);
                     }
 
-                    let dayRegex = /data-date="(\d{4}-\d{2}-\d{2})"[^>]*data-level="(\d+)"/g;
+                    // Greg fork 2026-10-06: the <td> cells only carry the 0-4
+                    // colour level, but the EXACT per-day count lives in the
+                    // <tool-tip> element keyed to each cell id ("52 contributions
+                    // on October 1st."). Build id->count, then join, so busy days
+                    // aren't flattened to the level-4 placeholder of 10.
+                    let countById = {};
+                    let tipRegex = /for="(contribution-day-component-\d+-\d+)"[^>]*>\s*(No|[\d,]+)\s+contribution/g;
+                    let tip;
+                    while ((tip = tipRegex.exec(html)) !== null) {
+                        countById[tip[1]] = (tip[2] === "No") ? 0 : parseInt(tip[2].replace(/,/g, ""));
+                    }
+
+                    let levelToCount = function(lvl) {
+                        return lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
+                    };
+
+                    let dayRegex = /data-date="(\d{4}-\d{2}-\d{2})"[^>]*id="(contribution-day-component-\d+-\d+)"[^>]*data-level="(\d+)"/g;
                     let match;
                     let list = [];
                     while ((match = dayRegex.exec(html)) !== null) {
                         let dateStr = match[1];
-                        let lvl = parseInt(match[2]);
-                        let cnt = lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
+                        let cellId = match[2];
+                        let lvl = parseInt(match[3]);
+                        let cnt = (countById[cellId] !== undefined) ? countById[cellId] : levelToCount(lvl);
                         list.push({ date: dateStr, level: lvl, count: cnt });
                     }
 
                     if (list.length === 0) {
+                        // Fallback for markup without the id ordering we expect:
+                        // approximate counts from the level buckets.
                         let altRegex = /data-level="(\d+)"[^>]*data-date="(\d{4}-\d{2}-\d{2})"/g;
                         while ((match = altRegex.exec(html)) !== null) {
                             let lvl = parseInt(match[1]);
                             let dateStr = match[2];
-                            let cnt = lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
-                            list.push({ date: dateStr, level: lvl, count: cnt });
+                            list.push({ date: dateStr, level: lvl, count: levelToCount(lvl) });
                         }
                     }
 
