@@ -253,7 +253,7 @@ Item {
         root.username = clean;
         root.selectedDay = null;
         if (forceFetch) {
-            fetchContributions(clean, root.selectedYear);
+            fetchGithubHtml(clean, root.selectedYear);
             return;
         }
         readCacheForYear(clean, root.selectedYear);
@@ -324,7 +324,10 @@ Item {
                     }
                 } catch(e) {}
             }
-            fetchGithubHtml(cleanUser, year);
+            // Greg fork 2026-10-06: proxy is the public-only fallback; if it also
+            // fails, surface the error (HTML was already tried as the primary).
+            root.loading = false;
+            root.hasError = true;
         };
         xhr.send();
     }
@@ -384,8 +387,9 @@ Item {
                     }
                 } catch(e) {}
             }
-            root.loading = false;
-            root.hasError = true;
+            // Greg fork 2026-10-06: HTML is primary (honors "include private
+            // contributions on my profile"); fall back to the public-only proxy.
+            root.fetchContributions(cleanUser, year);
         };
         xhr.send();
     }
@@ -452,7 +456,7 @@ Item {
                         }
                     } catch(e) {}
                 }
-                root.fetchContributions(u, yr);
+                root.fetchGithubHtml(u, yr);
             }
         }
     }
@@ -712,7 +716,7 @@ Item {
 
                     onClicked: {
                         if (root.username !== "") {
-                            root.fetchContributions(root.username, root.selectedYear);
+                            root.fetchGithubHtml(root.username, root.selectedYear);
                         }
                     }
                 }
