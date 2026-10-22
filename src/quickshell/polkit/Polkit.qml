@@ -129,6 +129,7 @@ PanelWindow {
             RowLayout {
                 Layout.fillWidth: true
                 spacing: polkitWindow.s(12)
+                layoutDirection: I18n.layoutDirection
 
                 Rectangle {
                     Layout.preferredWidth: polkitWindow.s(44)
@@ -148,7 +149,7 @@ PanelWindow {
                             if (name.indexOf("network") !== -1) return "󰖩";
                             return "󰌾";
                         }
-                        font.family: "Iosevka Nerd Font"
+                        font.family: ThemeBackend.iconFont
                         font.pixelSize: polkitWindow.s(22)
                         color: ThemeBackend.mauve
                     }
@@ -169,6 +170,7 @@ PanelWindow {
                         font.pixelSize: polkitWindow.s(14)
                         font.weight: Font.Bold
                         wrapMode: Text.Wrap
+                        horizontalAlignment: I18n.textAlignment
                         Layout.fillWidth: true
                     }
 
@@ -181,19 +183,18 @@ PanelWindow {
                         font.family: ThemeBackend.fontFamily
                         font.pixelSize: polkitWindow.s(12)
                         wrapMode: Text.Wrap
+                        horizontalAlignment: I18n.textAlignment
                         Layout.fillWidth: true
                     }
                 }
 
-                IconButton {
+                CloseButton {
                     Layout.preferredWidth: polkitWindow.toolbarHeight
                     Layout.preferredHeight: polkitWindow.toolbarHeight
                     Layout.alignment: Qt.AlignTop
                     cornerRadius: polkitWindow.crSmall
-                    buttonIcon: "󰅖"
                     iconFontSize: polkitWindow.s(14)
                     accentColor: ThemeBackend.surface1
-                    textColor: ThemeBackend.text
                     onClicked: PolkitService.cancel()
                 }
             }
@@ -211,10 +212,11 @@ PanelWindow {
                     anchors.fill: parent
                     anchors.margins: polkitWindow.s(6)
                     spacing: polkitWindow.s(8)
+                    layoutDirection: I18n.layoutDirection
 
                     Text {
                         text: "󰅚"
-                        font.family: "Iosevka Nerd Font"
+                        font.family: ThemeBackend.iconFont
                         font.pixelSize: polkitWindow.s(14)
                         color: ThemeBackend.red
                     }
@@ -227,6 +229,7 @@ PanelWindow {
                         font.pixelSize: polkitWindow.s(12)
                         font.weight: Font.Medium
                         wrapMode: Text.Wrap
+                        horizontalAlignment: I18n.textAlignment
                         Layout.fillWidth: true
                     }
                 }

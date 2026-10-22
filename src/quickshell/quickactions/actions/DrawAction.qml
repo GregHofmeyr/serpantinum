@@ -12,7 +12,7 @@ Item {
 
     property bool isActiveTab: typeof isCurrentTarget !== "undefined" ? isCurrentTarget : true
 
-    property string iconFont: "Font Awesome 6 Free Solid"
+    property string iconFont: ThemeBackend.iconFont
     property string safeActiveEdge: typeof activeEdge !== "undefined" ? activeEdge : "left"
 
     function s(val) {
@@ -67,7 +67,8 @@ Item {
     property color solidBgColor: ThemeBackend.mantle
     property color themeBaseColor: ThemeBackend.base
     
-    property color panelBgColor: Qt.rgba(themeBaseColor.r, themeBaseColor.g, themeBaseColor.b, 0.85)
+    property color panelBgColor: Qt.rgba(themeBaseColor.r, themeBaseColor.g, themeBaseColor.b, ThemeBackend.glassActive ? ThemeBackend.elementOpacity : 0.85)
+    property color popupBgColor: Qt.rgba(themeBaseColor.r, themeBaseColor.g, themeBaseColor.b, ThemeBackend.glassActive ? ThemeBackend.elementOpacity : 0.98)
     property color panelBorderColor: Qt.rgba(baseTextColor.r, baseTextColor.g, baseTextColor.b, 0.15)
 
     property real minZoom: 0.1
@@ -76,7 +77,10 @@ Item {
 
     property var actionHistory: []
     property int historyStep: -1
-    property int maxHistory: 50
+    property int maxHistory: 100
+    property int lockedCount: 0
+    readonly property bool canUndo: historyStep >= lockedCount
+    readonly property bool canRedo: historyStep < actionHistory.length - 1
     property var currentAction: null
 
     property var colorPalettes: [
@@ -141,24 +145,27 @@ Item {
     function commitAction(action) {
         var newHistory = root.actionHistory.slice(0, root.historyStep + 1);
         newHistory.push(action);
-        
-        if (newHistory.length > root.maxHistory) {
-            newHistory.shift();
-        }
-        
+
         root.actionHistory = newHistory;
         root.historyStep = root.actionHistory.length - 1;
+        root.lockedCount = Math.max(root.lockedCount, root.actionHistory.length - root.maxHistory);
+    }
+
+    function finishStroke() {
+        if (!root.currentAction) return;
+        root.commitAction(root.currentAction);
+        root.currentAction = null;
     }
 
     function undo() {
-        if (root.historyStep >= 0) {
+        if (root.canUndo) {
             root.historyStep--;
             triggerReplay();
         }
     }
 
     function redo() {
-        if (root.historyStep < root.actionHistory.length - 1) {
+        if (root.canRedo) {
             root.historyStep++;
             triggerReplay();
         }
@@ -168,6 +175,57 @@ Item {
         if (orientedRoot.children.length > 0) {
             drawCanvas._replayPending = true;
             drawCanvas.requestPaint();
+        }
+    }
+
+    function exportDrawing(targetPath, callback) {
+        if (typeof drawCanvas.grabToImage === "function") {
+            var initiated = drawCanvas.grabToImage(function(result) {
+                var success = false;
+                try {
+                    success = result.saveToFile(targetPath);
+                } catch (e) {
+                    success = false;
+                }
+                if (!success && typeof drawCanvas.save === "function") {
+                    try {
+                        success = drawCanvas.save(targetPath, Qt.size(drawCanvas.width, drawCanvas.height));
+                    } catch (e) {}
+                    if (!success) {
+                        try {
+                            success = drawCanvas.save(targetPath);
+                        } catch (e) {}
+                    }
+                }
+                if (callback) callback(success);
+            });
+            if (!initiated) {
+                var fallbackSuccess = false;
+                if (typeof drawCanvas.save === "function") {
+                    try {
+                        fallbackSuccess = drawCanvas.save(targetPath, Qt.size(drawCanvas.width, drawCanvas.height));
+                    } catch (e) {}
+                    if (!fallbackSuccess) {
+                        try {
+                            fallbackSuccess = drawCanvas.save(targetPath);
+                        } catch (e) {}
+                    }
+                }
+                if (callback) callback(fallbackSuccess);
+            }
+        } else if (typeof drawCanvas.save === "function") {
+            var res = false;
+            try {
+                res = drawCanvas.save(targetPath, Qt.size(drawCanvas.width, drawCanvas.height));
+            } catch (e) {}
+            if (!res) {
+                try {
+                    res = drawCanvas.save(targetPath);
+                } catch (e) {}
+            }
+            if (callback) callback(res);
+        } else {
+            if (callback) callback(false);
         }
     }
 
@@ -310,7 +368,14 @@ Item {
                         
                         if (_replayPending) {
                             ctx.clearRect(0, 0, width, height);
-                            for (var h = 0; h <= root.historyStep; h++) {
+                            var replayStart = 0;
+                            for (var c = root.historyStep; c >= 0; c--) {
+                                if (root.actionHistory[c] && root.actionHistory[c].type === "clear") {
+                                    replayStart = c;
+                                    break;
+                                }
+                            }
+                            for (var h = replayStart; h <= root.historyStep; h++) {
                                 var action = root.actionHistory[h];
                                 if (!action) continue;
 
@@ -412,6 +477,7 @@ Item {
                                 return;
                             }
 
+                            root.finishStroke();
                             drawCanvas.lastX = mouse.x;
                             drawCanvas.lastY = mouse.y;
                             
@@ -473,12 +539,8 @@ Item {
                             }
                         }
 
-                        onReleased: (mouse) => {
-                            if (root.currentAction) {
-                                root.commitAction(root.currentAction);
-                                root.currentAction = null;
-                            }
-                        }
+                        onReleased: (mouse) => root.finishStroke()
+                        onCanceled: root.finishStroke()
                     }
                 }
             }
@@ -500,6 +562,12 @@ Item {
                 color: root.panelBgColor
                 border.width: 1
                 border.color: root.panelBorderColor
+
+                WallpaperBlur {
+                    z: -1
+                    anchors.fill: parent
+                    radius: parent.radius
+                }
 
                 Row {
                     id: zoomRow
@@ -559,9 +627,15 @@ Item {
                 textColor: root.baseTextColor
                 onClicked: {
                     var outDir = root.picturesDir !== "" ? root.picturesDir : "/tmp";
+                    Quickshell.execDetached(["mkdir", "-p", outDir]);
                     var outPath = outDir + "/drawing_" + Date.now() + ".png";
-                    drawCanvas.save(outPath);
-                    Quickshell.execDetached(["notify-send", "-a", "DrawAction", "Drawing saved", outPath]);
+                    root.exportDrawing(outPath, function(success) {
+                        if (success) {
+                            Quickshell.execDetached(["notify-send", "-a", I18n.t("quickactions.draw.notification.app_name") || "DrawAction", I18n.t("quickactions.draw.notification.saved_title") || "Drawing saved", outPath]);
+                        } else {
+                            Quickshell.execDetached(["notify-send", "-a", I18n.t("quickactions.draw.notification.app_name") || "DrawAction", I18n.t("quickactions.draw.notification.failed_title") || "Export failed", I18n.t("quickactions.draw.notification.failed_body") || "Could not save drawing"]);
+                        }
+                    });
                 }
             }
 
@@ -575,8 +649,14 @@ Item {
                 textColor: root.baseTextColor
                 onClicked: {
                     var tempPath = Caching.getRunDir("quickactions") + "/drawing_clip.png";
-                    drawCanvas.save(tempPath);
-                    Quickshell.execDetached(["sh", "-c", "wl-copy < " + tempPath]);
+                    root.exportDrawing(tempPath, function(success) {
+                        if (success) {
+                            Quickshell.execDetached(["sh", "-c", "if command -v wl-copy >/dev/null 2>&1; then wl-copy --type image/png < '" + tempPath + "'; fi"]);
+                            Quickshell.execDetached(["notify-send", "-a", I18n.t("quickactions.draw.notification.app_name") || "DrawAction", I18n.t("quickactions.draw.notification.copied_title") || "Drawing copied", I18n.t("quickactions.draw.notification.copied_body") || "Drawing copied to clipboard"]);
+                        } else {
+                            Quickshell.execDetached(["notify-send", "-a", I18n.t("quickactions.draw.notification.app_name") || "DrawAction", I18n.t("quickactions.draw.notification.failed_title") || "Export failed", I18n.t("quickactions.draw.notification.failed_body") || "Could not save drawing"]);
+                        }
+                    });
                 }
             }
         }
@@ -587,9 +667,15 @@ Item {
             width: s(260)
             height: s(64)
             radius: ThemeBackend.borderRadius
-            color: Qt.rgba(ThemeBackend.base.r, ThemeBackend.base.g, ThemeBackend.base.b, 0.98)
+            color: root.popupBgColor
             border.width: 1
             border.color: root.panelBorderColor
+
+            WallpaperBlur {
+                z: -1
+                anchors.fill: parent
+                radius: parent.radius
+            }
             
             anchors.bottom: toolbar.top
             anchors.bottomMargin: s(12)
@@ -720,9 +806,15 @@ Item {
             width: s(320)
             height: s(400)
             radius: ThemeBackend.borderRadius
-            color: Qt.rgba(ThemeBackend.base.r, ThemeBackend.base.g, ThemeBackend.base.b, 0.98)
+            color: root.popupBgColor
             border.width: 1
             border.color: root.panelBorderColor
+
+            WallpaperBlur {
+                z: -1
+                anchors.fill: parent
+                radius: parent.radius
+            }
             
             anchors.bottom: toolbar.top
             anchors.bottomMargin: s(12)
@@ -837,13 +929,19 @@ Item {
                 RowLayout {
                     width: parent.width
                     spacing: s(10)
+                    layoutDirection: I18n.layoutDirection
 
                     Text {
-                        text: root.colorPalettes[root.activePaletteIndex] ? root.colorPalettes[root.activePaletteIndex].name : "Palette"
+                        text: {
+                            let pName = root.colorPalettes[root.activePaletteIndex] ? root.colorPalettes[root.activePaletteIndex].name : "";
+                            if (pName === "Default") return I18n.t("quickactions.draw.palette_default", "Default");
+                            return pName || I18n.t("quickactions.draw.palette", "Palette");
+                        }
                         color: root.baseTextColor
                         font.pixelSize: s(14)
                         font.bold: true
                         Layout.fillWidth: true
+                        horizontalAlignment: I18n.textAlignment
                     }
                     
                     IconButton {
@@ -861,6 +959,7 @@ Item {
                     columns: 8
                     spacing: s(12)
                     anchors.horizontalCenter: parent.horizontalCenter
+                    layoutDirection: I18n.layoutDirection
 
                     Repeater {
                         model: root.colorPalettes[root.activePaletteIndex] ? root.colorPalettes[root.activePaletteIndex].colors : []
@@ -891,9 +990,10 @@ Item {
                 Row {
                     spacing: s(10)
                     anchors.horizontalCenter: parent.horizontalCenter
+                    layoutDirection: I18n.layoutDirection
                     
                     Text { 
-                        text: "Hex"
+                        text: I18n.t("quickactions.draw.hex", "Hex")
                         color: Qt.rgba(root.baseTextColor.r, root.baseTextColor.g, root.baseTextColor.b, 0.6)
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: s(13)
@@ -944,6 +1044,12 @@ Item {
             border.width: 1
             border.color: root.panelBorderColor
 
+            WallpaperBlur {
+                z: -1
+                anchors.fill: parent
+                radius: parent.radius
+            }
+
             Row {
                 id: toolRow
                 anchors.centerIn: parent
@@ -955,8 +1061,8 @@ Item {
                     cornerRadius: ThemeBackend.borderRadius
                     buttonIcon: "\uF0E2"
                     iconFontSize: root.s(14)
-                    enabled: root.historyStep >= 0
-                    accentColor: isHoveredOrHighlighted && root.historyStep >= 0 ? ThemeBackend.surface0 : "transparent"
+                    enabled: root.canUndo
+                    accentColor: isHoveredOrHighlighted && root.canUndo ? ThemeBackend.surface0 : "transparent"
                     textColor: root.baseTextColor
                     onClicked: root.undo()
                 }
@@ -967,8 +1073,8 @@ Item {
                     cornerRadius: ThemeBackend.borderRadius
                     buttonIcon: "\uF01E"
                     iconFontSize: root.s(14)
-                    enabled: root.historyStep < root.actionHistory.length - 1
-                    accentColor: isHoveredOrHighlighted && root.historyStep < root.actionHistory.length - 1 ? ThemeBackend.surface0 : "transparent"
+                    enabled: root.canRedo
+                    accentColor: isHoveredOrHighlighted && root.canRedo ? ThemeBackend.surface0 : "transparent"
                     textColor: root.baseTextColor
                     onClicked: root.redo()
                 }
@@ -1026,7 +1132,7 @@ Item {
                             model: [
                                 { id: "pen", icon: "\uF040" },
                                 { id: "brush", icon: "\uF1FC" },
-                                { id: "fill", icon: "\uF576" },
+                                { id: "fill", icon: "\uF043" },
                                 { id: "eraser", icon: "\uF12D" }
                             ]
 

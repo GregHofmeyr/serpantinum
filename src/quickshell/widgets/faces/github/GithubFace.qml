@@ -125,7 +125,7 @@ Item {
     function getColorForLevel(lvl) {
         let accent = (typeof ThemeBackend !== "undefined" && ThemeBackend.green) ? ThemeBackend.green : Qt.color("#a6e3a1");
         let baseSurface = (typeof ThemeBackend !== "undefined" && ThemeBackend.surface1) ? ThemeBackend.surface1 : Qt.color("#313244");
-        if (lvl <= 0) return baseSurface;
+        if (lvl <= 0) return Qt.alpha(baseSurface, ThemeBackend.elementOpacity);
         if (lvl === 1) return Qt.rgba(accent.r, accent.g, accent.b, 0.35);
         if (lvl === 2) return Qt.rgba(accent.r, accent.g, accent.b, 0.58);
         if (lvl === 3) return Qt.rgba(accent.r, accent.g, accent.b, 0.80);
@@ -510,9 +510,15 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: ThemeBackend.surface0
+        color: Qt.alpha(ThemeBackend.surface0, ThemeBackend.elementOpacity)
         radius: ThemeBackend.clampedBorderRadius !== undefined ? ThemeBackend.clampedBorderRadius : ThemeBackend.borderRadius
         clip: true
+
+        WallpaperBlur {
+            z: -1
+            anchors.fill: parent
+            radius: parent.radius
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -532,6 +538,7 @@ Item {
                     buttonIcon: root.isEditingUser ? "󰄬" : "󰏫"
                     iconFontSize: Scaler.s(14)
                     accentColor: root.isEditingUser ? ThemeBackend.green : ThemeBackend.surface1
+                    bgOpacity: ThemeBackend.elementOpacity
                     textColor: root.isEditingUser ? ThemeBackend.surface0 : ThemeBackend.subtext0
 
                     onClicked: {
@@ -577,6 +584,7 @@ Item {
                         horizontalPadding: Scaler.s(8)
                         textFontSize: Scaler.s(11)
                         accentColor: ThemeBackend.surface1
+                        bgOpacity: ThemeBackend.elementOpacity
                         textColor: ThemeBackend.text
                         buttonText: root.username !== "" ? root.username : I18n.t("widgets.github.set_user")
 
@@ -606,6 +614,7 @@ Item {
                         horizontalPadding: Scaler.s(8)
                         cornerRadius: ThemeBackend.borderRadius > 0 ? Math.min(ThemeBackend.borderRadius, Scaler.s(6)) : Scaler.s(6)
                         baseColor: ThemeBackend.surface1
+                        bgOpacity: ThemeBackend.elementOpacity
                         textColor: ThemeBackend.text
                         subTextColor: ThemeBackend.subtext0
                         accentColor: ThemeBackend.green
@@ -655,8 +664,8 @@ Item {
                     value: root.selectedYear
                     fontPixelSize: Scaler.s(11)
                     iconFontSize: Scaler.s(12)
-                    baseColor: ThemeBackend.surface1
-                    buttonColor: ThemeBackend.surface2 !== undefined ? ThemeBackend.surface2 : Qt.lighter(ThemeBackend.surface1, 1.1)
+                    baseColor: Qt.alpha(ThemeBackend.surface1, ThemeBackend.elementOpacity)
+                    buttonColor: Qt.alpha(ThemeBackend.surface2 !== undefined ? ThemeBackend.surface2 : Qt.lighter(ThemeBackend.surface1, 1.1), ThemeBackend.elementOpacity)
                     textColor: ThemeBackend.text
                     accentColor: ThemeBackend.green
                     buttonTextColor: ThemeBackend.subtext0
@@ -679,6 +688,7 @@ Item {
                     horizontalPadding: Scaler.s(10)
                     textFontSize: Scaler.s(11)
                     accentColor: ThemeBackend.surface1
+                    bgOpacity: ThemeBackend.elementOpacity
                     textColor: root.hasError ? ThemeBackend.red : (root.loading ? ThemeBackend.subtext0 : ThemeBackend.text)
                     buttonText: {
                         if (root.loading) return "...";
@@ -707,6 +717,7 @@ Item {
                     horizontalPadding: Scaler.s(8)
                     textFontSize: Scaler.s(10)
                     accentColor: ThemeBackend.surface1
+                    bgOpacity: ThemeBackend.elementOpacity
                     textColor: ThemeBackend.text
                     buttonText: {
                         if (root.selectedDay) {
@@ -730,6 +741,7 @@ Item {
                     buttonIcon: "󰑓"
                     iconFontSize: Scaler.s(14)
                     accentColor: ThemeBackend.surface1
+                    bgOpacity: ThemeBackend.elementOpacity
                     textColor: ThemeBackend.subtext0
 
                     onClicked: {
@@ -897,7 +909,7 @@ Item {
 
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        font.family: "Iosevka Nerd Font"
+                        font.family: ThemeBackend.iconFont
                         font.pixelSize: Scaler.s(22)
                         color: root.hasError ? ThemeBackend.red : ThemeBackend.subtext0
                         text: root.hasError ? "󰅚" : (root.loading ? "󰑓" : "󰊤")
