@@ -57,13 +57,13 @@ Item {
         let adapter = Bluetooth.defaultAdapter;
         if (!adapter || !adapter.devices) return [];
         let devs = adapter.devices.values || adapter.devices;
-        let trustedOnly = window.btTrustedOnly();
+        let trustedOnly = popupWindowRoot.btTrustedOnly();
         let list = [];
         let count = devs.length !== undefined ? devs.length : (devs.count !== undefined ? devs.count : 0);
         for (let i = 0; i < count; i++) {
             let d = devs[i] !== undefined ? devs[i] : (devs.get ? devs.get(i) : null);
             if (!d) continue;
-            if (trustedOnly && !window.btIsKnown(d)) continue;
+            if (trustedOnly && !popupWindowRoot.btIsKnown(d)) continue;
             list.push(d);
         }
         return list;
