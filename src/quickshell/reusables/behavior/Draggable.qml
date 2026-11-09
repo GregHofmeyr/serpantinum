@@ -91,7 +91,7 @@ Item {
     Behavior on animPosition {
         enabled: !root.isDragging
         NumberAnimation {
-            duration: 300
+            duration: 250
             easing.type: Easing.OutCubic
         }
     }
@@ -226,7 +226,7 @@ Item {
                 saturation: root.glassSaturation
                 thickness: Math.max(3, Math.min(14, Math.min(width, height) * 0.28)) * root.glassThickness
                 press: root.isDragging ? 0.5 : (root.isHoveredOrHighlighted ? 0.2 : 0)
-                Behavior on press { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                Behavior on press { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
             }
 
             Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -237,8 +237,6 @@ Item {
         anchors.fill: parent
         radius: root.cornerRadius
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.06)
-        border.width: 1
     }
 
     Rectangle {
@@ -253,8 +251,6 @@ Item {
         x: root.vertical ? (root.width - width) / 2 : root.animPosition * (root.width - width)
         y: root.vertical ? (1.0 - root.animPosition) * (root.height - height) : (root.height - height) / 2
         color: handleGlass.active ? "transparent" : (root.isDragging ? root.handleDragColor : (root.isHoveredOrHighlighted ? root.handleHoverColor : root.handleColor))
-        border.color: root.handleBorderColor
-        border.width: 0
 
         GlassFill {
             id: handleGlass
@@ -269,7 +265,7 @@ Item {
             shadow: 1
             press: root.isDragging ? 1 : (root.isHoveredOrHighlighted ? 0.3 : 0)
             pulse: Math.min(1, handle.flashOpacity * 2.5)
-            Behavior on press { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+            Behavior on press { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
         }
 
         property real popScale: 1.0
@@ -285,7 +281,6 @@ Item {
         }
 
         Behavior on color { ColorAnimation { duration: 150 } }
-        Behavior on border.color { ColorAnimation { duration: 150 } }
         Behavior on width {
             NumberAnimation {
                 duration: 150
@@ -312,7 +307,7 @@ Item {
                 target: handle
                 property: "popScale"
                 to: 1.0
-                duration: 200
+                duration: 250
                 easing.type: Easing.OutCubic
             }
         }
@@ -323,7 +318,7 @@ Item {
             color: "#ffffff"
             opacity: handle.flashOpacity
             visible: !handleGlass.active
-            PropertyAnimation on opacity { id: handleFlashAnim; to: 0; duration: 300; easing.type: Easing.OutCubic }
+            PropertyAnimation on opacity { id: handleFlashAnim; to: 0; duration: 250; easing.type: Easing.OutCubic }
         }
 
         Text {
@@ -357,7 +352,7 @@ Item {
         }
         Behavior on scale {
             NumberAnimation {
-                duration: 200
+                duration: 250
                 easing.type: Easing.OutBack
             }
         }

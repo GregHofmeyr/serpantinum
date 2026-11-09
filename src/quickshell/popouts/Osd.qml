@@ -271,7 +271,7 @@ PanelWindow {
         property int targetPct: -1
         onTriggered: {
             if (targetPct >= 0) {
-                Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", targetPct.toString()]);
+                Quickshell.execDetached(["serpantinum-core", "brightness", "set", targetPct.toString()]);
                 targetPct = -1;
             }
         }
@@ -419,8 +419,6 @@ PanelWindow {
             topRightRadius: (flatTop || flatRight) ? 0 : osdWindow.cornerRadius
             bottomLeftRadius: (flatBottom || flatLeft) ? 0 : osdWindow.cornerRadius
             bottomRightRadius: (flatBottom || flatRight) ? 0 : osdWindow.cornerRadius
-            border.width: 0
-            border.color: "transparent"
             clip: true
 
             WallpaperBlur {
@@ -511,7 +509,7 @@ PanelWindow {
                             briCmdThrottle.targetPct = -1;
                             let target = osdWindow.briVal > 0 ? 0 : 100;
                             OsdController.briVal = target;
-                            Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", target.toString()]);
+                            Quickshell.execDetached(["serpantinum-core", "brightness", "set", target.toString()]);
                         }
                     }
                 }
@@ -523,8 +521,6 @@ PanelWindow {
                     Layout.preferredHeight: osdWindow.s(22)
                     radius: osdWindow.s(6)
                     color: osdWindow.isToggleActive ? Qt.rgba(osdWindow.toggleActiveColor.r, osdWindow.toggleActiveColor.g, osdWindow.toggleActiveColor.b, 0.2) : ThemeBackend.surface1
-                    border.width: 1
-                    border.color: osdWindow.isToggleActive ? osdWindow.toggleActiveColor : "transparent"
 
                     Text {
                         anchors.centerIn: parent
@@ -576,7 +572,7 @@ PanelWindow {
                         OsdController.restartTimer();
                         if (osdWindow.kind === "brightness" && briCmdThrottle.targetPct >= 0) {
                             briCmdThrottle.stop();
-                            Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", briCmdThrottle.targetPct.toString()]);
+                            Quickshell.execDetached(["serpantinum-core", "brightness", "set", briCmdThrottle.targetPct.toString()]);
                             briCmdThrottle.targetPct = -1;
                         }
                     }
@@ -681,7 +677,7 @@ PanelWindow {
                                 briCmdThrottle.targetPct = -1;
                                 let target = osdWindow.briVal > 0 ? 0 : 100;
                                 OsdController.briVal = target;
-                                Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", target.toString()]);
+                                Quickshell.execDetached(["serpantinum-core", "brightness", "set", target.toString()]);
                             }
                         }
                     }
@@ -780,7 +776,7 @@ PanelWindow {
                         OsdController.restartTimer();
                         if (osdWindow.kind === "brightness" && briCmdThrottle.targetPct >= 0) {
                             briCmdThrottle.stop();
-                            Quickshell.execDetached(["bash", Caching.qsDir + "/../scripts/brightness.sh", "set", briCmdThrottle.targetPct.toString()]);
+                            Quickshell.execDetached(["serpantinum-core", "brightness", "set", briCmdThrottle.targetPct.toString()]);
                             briCmdThrottle.targetPct = -1;
                         }
                     }

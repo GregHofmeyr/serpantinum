@@ -239,9 +239,7 @@ Item {
     }
 
     function saveUsername(user) {
-        userSaveProcess.pendingUser = user;
-        userSaveProcess.running = false;
-        userSaveProcess.running = true;
+        userFile.setText(user);
     }
 
     function loadUser(user, forceFetch) {
@@ -253,7 +251,7 @@ Item {
         root.username = clean;
         root.selectedDay = null;
         if (forceFetch) {
-            fetchGithubHtml(clean, root.selectedYear);
+            fetchGithubHtml(clean, root.selectedYear); // fork: HTML-first for exact/private counts (jogruber proxy is public-only)
             return;
         }
         readCacheForYear(clean, root.selectedYear);
@@ -262,8 +260,9 @@ Item {
     function readCacheForYear(user, year) {
         cacheReadProcess.targetUser = user;
         cacheReadProcess.targetYear = year;
-        cacheReadProcess.running = false;
-        cacheReadProcess.running = true;
+        let cacheFile = root.cacheFilePath(user, year);
+        if (cacheReadProcess.path === cacheFile) cacheReadProcess.reload();
+        else cacheReadProcess.path = cacheFile;
     }
 
     function saveCachedData(user, year, list, totalVal) {
@@ -274,11 +273,8 @@ Item {
                 total: totalVal,
                 contributions: list
             };
-            cacheSaveProcess.targetUser = user;
-            cacheSaveProcess.targetYear = year;
-            cacheSaveProcess.jsonData = JSON.stringify(obj);
-            cacheSaveProcess.running = false;
-            cacheSaveProcess.running = true;
+            cacheSaveProcess.path = root.cacheFilePath(user, year);
+            cacheSaveProcess.setText(JSON.stringify(obj));
         } catch(e) {}
     }
 
@@ -324,10 +320,7 @@ Item {
                     }
                 } catch(e) {}
             }
-            // Greg fork 2026-10-06: proxy is the public-only fallback; if it also
-            // fails, surface the error (HTML was already tried as the primary).
-            root.loading = false;
-            root.hasError = true;
+            fetchGithubHtml(cleanUser, year);
         };
         xhr.send();
     }
@@ -355,41 +348,23 @@ Item {
                         root.maxYear = Math.max(...parsedYears);
                     }
 
-                    // Greg fork 2026-10-06: the <td> cells only carry the 0-4
-                    // colour level, but the EXACT per-day count lives in the
-                    // <tool-tip> element keyed to each cell id ("52 contributions
-                    // on October 1st."). Build id->count, then join, so busy days
-                    // aren't flattened to the level-4 placeholder of 10.
-                    let countById = {};
-                    let tipRegex = /for="(contribution-day-component-\d+-\d+)"[^>]*>\s*(No|[\d,]+)\s+contribution/g;
-                    let tip;
-                    while ((tip = tipRegex.exec(html)) !== null) {
-                        countById[tip[1]] = (tip[2] === "No") ? 0 : parseInt(tip[2].replace(/,/g, ""));
-                    }
-
-                    let levelToCount = function(lvl) {
-                        return lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
-                    };
-
-                    let dayRegex = /data-date="(\d{4}-\d{2}-\d{2})"[^>]*id="(contribution-day-component-\d+-\d+)"[^>]*data-level="(\d+)"/g;
+                    let dayRegex = /data-date="(\d{4}-\d{2}-\d{2})"[^>]*data-level="(\d+)"/g;
                     let match;
                     let list = [];
                     while ((match = dayRegex.exec(html)) !== null) {
                         let dateStr = match[1];
-                        let cellId = match[2];
-                        let lvl = parseInt(match[3]);
-                        let cnt = (countById[cellId] !== undefined) ? countById[cellId] : levelToCount(lvl);
+                        let lvl = parseInt(match[2]);
+                        let cnt = lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
                         list.push({ date: dateStr, level: lvl, count: cnt });
                     }
 
                     if (list.length === 0) {
-                        // Fallback for markup without the id ordering we expect:
-                        // approximate counts from the level buckets.
                         let altRegex = /data-level="(\d+)"[^>]*data-date="(\d{4}-\d{2}-\d{2})"/g;
                         while ((match = altRegex.exec(html)) !== null) {
                             let lvl = parseInt(match[1]);
                             let dateStr = match[2];
-                            list.push({ date: dateStr, level: lvl, count: levelToCount(lvl) });
+                            let cnt = lvl === 0 ? 0 : (lvl === 1 ? 1 : (lvl === 2 ? 3 : (lvl === 3 ? 6 : 10)));
+                            list.push({ date: dateStr, level: lvl, count: cnt });
                         }
                     }
 
@@ -405,99 +380,76 @@ Item {
                     }
                 } catch(e) {}
             }
-            // Greg fork 2026-10-06: HTML is primary (honors "include private
-            // contributions on my profile"); fall back to the public-only proxy.
-            root.fetchContributions(cleanUser, year);
+            root.loading = false;
+            root.hasError = true;
         };
         xhr.send();
     }
 
-    Process {
-        id: userReadProcess
-        command: [
-            "bash",
-            "-c",
-            'FILE="${XDG_CACHE_HOME:-$HOME/.cache}/serpantinum/github/user.txt"; if [ -f "$FILE" ]; then cat "$FILE"; fi'
-        ]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let u = this.text.trim();
-                if (u !== "") {
-                    root.loadUser(u, false);
-                } else if (typeof SystemInfo !== "undefined" && SystemInfo.username !== "") {
-                    root.loadUser(SystemInfo.username, false);
-                }
+    FileView {
+        id: userFile
+        printErrors: false
+        property bool restored: false
+
+        function restore(raw) {
+            if (restored) return;
+            restored = true;
+            let u = raw.trim();
+            if (u !== "") {
+                root.loadUser(u, false);
+            } else if (typeof SystemInfo !== "undefined" && SystemInfo.username !== "") {
+                root.loadUser(SystemInfo.username, false);
             }
         }
+
+        onLoaded: restore(text())
+        onLoadFailed: restore("")
     }
 
-    Process {
-        id: userSaveProcess
-        property string pendingUser: ""
-        command: [
-            "bash",
-            "-c",
-            'DIR="${XDG_CACHE_HOME:-$HOME/.cache}/serpantinum/github"; mkdir -p "$DIR"; printf "%s" "$1" > "$DIR/user.txt"',
-            "--",
-            pendingUser
-        ]
-        running: false
-    }
-
-    Process {
+    FileView {
         id: cacheReadProcess
+        printErrors: false
         property string targetUser: ""
         property int targetYear: root.currentYear
-        command: [
-            "bash",
-            "-c",
-            'FILE="${XDG_CACHE_HOME:-$HOME/.cache}/serpantinum/github/${1}_${2}.json"; if [ -f "$FILE" ] && [ -s "$FILE" ]; then cat "$FILE"; else echo "CACHE_MISS"; fi',
-            "--",
-            targetUser,
-            targetYear.toString()
-        ]
-        running: false
-        stdout: StdioCollector {
-            onStreamFinished: {
-                let content = this.text.trim();
-                let u = cacheReadProcess.targetUser;
-                let yr = cacheReadProcess.targetYear;
-                if (u !== root.username || yr !== root.selectedYear) return;
 
-                if (content !== "" && content !== "CACHE_MISS") {
-                    try {
-                        let parsed = JSON.parse(content);
-                        if (parsed && parsed.contributions && parsed.contributions.length > 0) {
-                            root.processContributions(parsed.contributions, parsed.total);
-                            return;
-                        }
-                    } catch(e) {}
-                }
-                root.fetchGithubHtml(u, yr);
+        function handleRead(raw) {
+            let content = raw.trim();
+            let u = cacheReadProcess.targetUser;
+            let yr = cacheReadProcess.targetYear;
+            if (u !== root.username || yr !== root.selectedYear) return;
+
+            if (content !== "") {
+                try {
+                    let parsed = JSON.parse(content);
+                    if (parsed && parsed.contributions && parsed.contributions.length > 0) {
+                        root.processContributions(parsed.contributions, parsed.total);
+                        return;
+                    }
+                } catch(e) {}
             }
+            root.fetchGithubHtml(u, yr); // fork: HTML-first (see loadUser)
         }
+
+        onLoaded: handleRead(text())
+        onLoadFailed: handleRead("")
     }
 
-    Process {
+    FileView {
         id: cacheSaveProcess
-        property string targetUser: ""
-        property int targetYear: root.currentYear
-        property string jsonData: ""
-        command: [
-            "bash",
-            "-c",
-            'DIR="${XDG_CACHE_HOME:-$HOME/.cache}/serpantinum/github"; mkdir -p "$DIR"; printf "%s" "$3" > "$DIR/${1}_${2}.json"',
-            "--",
-            targetUser,
-            targetYear.toString(),
-            jsonData
-        ]
-        running: false
+        printErrors: false
+        preload: false
+    }
+
+    function cacheDirPath() {
+        return (Quickshell.env("XDG_CACHE_HOME") || (Quickshell.env("HOME") + "/.cache")) + "/serpantinum/github";
+    }
+
+    function cacheFilePath(user, year) {
+        return root.cacheDirPath() + "/" + String(user).replace(/[^A-Za-z0-9_.-]/g, "_") + "_" + year + ".json";
     }
 
     Component.onCompleted: {
-        userReadProcess.running = true;
+        userFile.path = root.cacheDirPath() + "/user.txt";
     }
 
     TextMetrics {
@@ -645,8 +597,6 @@ Item {
                         anchors.fill: parent
                         radius: ThemeBackend.borderRadius > 0 ? Math.min(ThemeBackend.borderRadius, Scaler.s(6)) : Scaler.s(6)
                         color: "transparent"
-                        border.width: 1.5
-                        border.color: ThemeBackend.surface1
                         visible: root.isEditingUser
                         z: 10
                     }
@@ -746,7 +696,7 @@ Item {
 
                     onClicked: {
                         if (root.username !== "") {
-                            root.fetchGithubHtml(root.username, root.selectedYear);
+                            root.fetchGithubHtml(root.username, root.selectedYear); // fork: HTML-first
                         }
                     }
                 }
@@ -821,7 +771,7 @@ Item {
                                             height: root.cellSize
                                             radius: Math.max(2, Math.min(Scaler.s(4), Math.round(root.cellSize * 0.22)))
                                             color: cellBox.dayObj === null ? "transparent" : (tileMa.pressed ? Qt.darker(cellBox.baseColor, 1.12) : (cellBox.isHovered ? Qt.lighter(cellBox.baseColor, 1.12) : cellBox.baseColor))
-                                            Behavior on color { ColorAnimation { duration: 180 } }
+                                            Behavior on color { ColorAnimation { duration: 150 } }
 
                                             scale: (cellBox.dayObj === null ? 1.0 : (tileMa.pressed ? 1.08 : (cellBox.isHovered ? 1.04 : 1.0))) * cellBox.popScale
                                             Behavior on scale {
@@ -844,7 +794,7 @@ Item {
                                                     target: cellBox
                                                     property: "popScale"
                                                     to: 1.0
-                                                    duration: 420
+                                                    duration: 400
                                                     easing.type: Easing.OutQuint
                                                 }
                                             }

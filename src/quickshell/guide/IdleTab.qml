@@ -10,8 +10,6 @@ import "../reusables/guide"
 GuideTab {
     id: idleTabRoot
 
-    property bool isNiri: false
-    property bool isMango: false
     property var expandedActionMap: ({})
 
     function toggleActionExpanded(id) {
@@ -207,7 +205,7 @@ GuideTab {
     }
 
     function getDefaultResumeCommand(actId) {
-        if (actId === "dpms") return idleTabRoot.isNiri ? "niri msg action power-on-monitors" : idleTabRoot.isMango ? "mmsg get all-monitors 2>/dev/null | jq -r '.monitors[]?.name' | while read -r mon; do mmsg dispatch \"wakeup_monitor,$mon\"; done" : "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })' || hyprctl dispatch dpms on";
+        if (actId === "dpms") return Compositor.name === "niri" ? "niri msg action power-on-monitors" : Compositor.name === "mango" ? "mmsg get all-monitors 2>/dev/null | jq -r '.monitors[]?.name' | while read -r mon; do mmsg dispatch \"wakeup_monitor,$mon\"; done" : Compositor.name === "hyprland" ? "hyprctl dispatch 'hl.dsp.dpms({ action = \"enable\" })' || hyprctl dispatch dpms on" : "";
         return I18n.t("guide.idle.resume_command.placeholder", "Resume command");
     }
 
@@ -286,9 +284,6 @@ GuideTab {
     }
 
     Component.onCompleted: {
-        let de = (typeof SystemInfo !== "undefined" && SystemInfo.desktopEnv) ? SystemInfo.desktopEnv.toLowerCase() : "";
-        idleTabRoot.isNiri = de.indexOf("niri") !== -1;
-        idleTabRoot.isMango = de.indexOf("mango") !== -1;
         idleTabRoot.refreshActionIds();
     }
 
@@ -357,7 +352,7 @@ GuideTab {
             verticalPadding: rootObj.s(10)
             spacing: rootObj.s(12)
             innerSpacing: actionCard.isCardOpen ? rootObj.s(12) : 0
-            Behavior on innerSpacing { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+            Behavior on innerSpacing { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
             bottomSpacing: 0
 
             customLeftContent: actionCard.isCustomAct ? customLeftRowComponent : null
@@ -414,8 +409,6 @@ GuideTab {
                     implicitHeight: rootObj.s(18)
                     radius: rootObj.s(4)
                     color: Qt.alpha(ThemeBackend.red, 0.15)
-                    border.color: Qt.alpha(ThemeBackend.red, 0.4)
-                    border.width: 1
 
                     Text {
                         id: invalidBadgeText
@@ -526,8 +519,8 @@ GuideTab {
                 property real openProgress: actionCard.isCardOpen ? 1 : 0
                 implicitHeight: expandedInnerCol.implicitHeight * openProgress
 
-                Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-                Behavior on openProgress { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+                Behavior on openProgress { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
                 ColumnLayout {
                     id: expandedInnerCol
@@ -819,7 +812,6 @@ GuideTab {
                     tintColor: Qt.alpha(ThemeBackend.surface0, 0.4)
                     tintAmount: 0.25
                 }
-                border.width: 0
                 visible: idleTabRoot.idleEnabled
 
                 ColumnLayout {

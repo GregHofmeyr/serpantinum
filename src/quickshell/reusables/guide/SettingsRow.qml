@@ -30,6 +30,17 @@ Rectangle {
     property string searchTab: ""
     property string searchSubTab: ""
     property string searchKeywords: ""
+    property string section: ""
+
+    readonly property string effectiveSection: {
+        if (section !== "") return section;
+        let p = root.parent;
+        while (p) {
+            if (p.searchSection !== undefined && p.searchSection !== "") return p.searchSection;
+            p = p.parent;
+        }
+        return "";
+    }
     property bool searchable: true
 
     property bool hiddenByConfig: false
@@ -49,7 +60,7 @@ Rectangle {
     readonly property string effectiveSettingId: {
         if (settingId && settingId !== "") return settingId;
         if (title && title !== "") {
-            return title.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+            return title.toLowerCase().replace(/[\x00-\x2f\x3a-\x5e\x60\x7b-\x7f\s]/g, "_");
         }
         return "";
     }
@@ -290,11 +301,11 @@ Rectangle {
             id: root.effectiveSettingId,
             title: root.title,
             desc: root.description,
-            description: root.description,
             tab: info.tab,
             subtab: info.subtab,
             icon: root.icon,
             keywords: root.searchKeywords,
+            section: root.effectiveSection,
             target: root,
             unavailable: root.hiddenByConfig
         });
@@ -423,7 +434,7 @@ Rectangle {
         let base = (root.clickable && cardMa.containsMouse) ? root.hoverColor : root.baseColor;
         if (root.dimmed) base = Qt.alpha(base, base.a * 0.5);
         if (root.highlightFlash > 0.001) {
-            let k = root.dimmed ? 0.2 : 0.12;
+            let k = root.dimmed ? 0.2 : 0.16;
             if (root.inBlob) {
                 if (base.a < 0.001) {
                     let cardAlpha = 0.4;
@@ -436,14 +447,11 @@ Rectangle {
         return base;
     }
     color: rowGlass.active ? (root.highlightFlash > 0.001 ? Qt.alpha(ThemeBackend.mauve, root.highlightFlash * 0.12) : "transparent") : stateColor
-    border.color: root.borderColor
-    border.width: root.borderWidth
     clip: true
 
     implicitHeight: contentCol.implicitHeight + root.verticalPadding * 2
 
-    Behavior on color { ColorAnimation { duration: 180 } }
-    Behavior on border.color { ColorAnimation { duration: 180 } }
+    Behavior on color { ColorAnimation { duration: 150 } }
 
     GlassFill {
         id: rowGlass
@@ -453,8 +461,8 @@ Rectangle {
         tintColor: ThemeBackend.surface0
         tintAmount: (root.clickable && cardMa.containsMouse ? 0.34 : 0.26) * (root.dimmed ? 0.5 : 1.0)
         press: root.clickable && cardMa.containsMouse ? 0.2 : 0
-        Behavior on press { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-        Behavior on tintAmount { NumberAnimation { duration: 180 } }
+        Behavior on press { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+        Behavior on tintAmount { NumberAnimation { duration: 150 } }
     }
 
     MouseArea {
@@ -484,7 +492,7 @@ Rectangle {
         spacing: root.innerSpacing
 
         opacity: root.dimmed ? 0.4 : 1.0
-        Behavior on opacity { NumberAnimation { duration: 180 } }
+        Behavior on opacity { NumberAnimation { duration: 150 } }
 
         GridLayout {
             id: mainRow

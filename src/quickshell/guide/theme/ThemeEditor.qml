@@ -143,8 +143,6 @@ Popup {
             tintColor: ThemeBackend.base
             tintAmount: 0.25
         }
-        border.color: ThemeBackend.surface0
-        border.width: 1
     }
 
     contentItem: ColumnLayout {
@@ -156,7 +154,7 @@ Popup {
             Text {
                 text: themeEditorPopup.editingThemeName === ""
                     ? I18n.t("guide.theme_editor.title", "Create Custom Theme")
-                    : I18n.t("guide.theme_editor.edit_title", "Edit Custom Theme")
+                    : I18n.t("guide.theme_editor.edit_title", "Edit custom theme")
 
                 color: ThemeBackend.text
                 font.family: ThemeBackend.fontFamily
@@ -247,8 +245,6 @@ Popup {
                             Layout.preferredHeight: rootObj ? rootObj.s(28) : 28
                             radius: rootObj ? rootObj.s(6) : 6
                             color: themeEditorPopup.currentColors[modelData] || "#000000"
-                            border.width: 1
-                            border.color: Qt.alpha(ThemeBackend.surface2, 0.6)
                         }
 
                         Text {

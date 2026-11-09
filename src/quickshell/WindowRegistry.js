@@ -40,13 +40,6 @@ function getWidgetLauncherEntries(i18n) {
             fontIcon: "󰕾"
         },
         {
-            id: "settings",
-            name: tr("widgets.guide.name", "Settings"),
-            description: tr("widgets.guide.desc", "Serpantinum settings"),
-            icon: "help-browser",
-            fontIcon: "󰋖"
-        },
-        {
             id: "calendar",
             name: tr("widgets.calendar.name", "Calendar & Clock"),
             description: tr("widgets.calendar.desc", "View date, time, and schedule"),
@@ -105,6 +98,15 @@ function getLayout(name, mx, my, mw, mh, userScale, barPosition) {
                 "bottom": { anchor: "bottom-right", mb: 52, mr: 5 }, 
                 "left": { anchor: "bottom-left", ml: 52, mb: 5 }, 
                 "right": { anchor: "bottom-right", mr: 52, mb: 5 } 
+            } 
+        },
+        "guide": { 
+            w: 1200, h: 750, comp: "guide/GuidePopup.qml", draggable: true,
+            pos: { 
+                "top": { anchor: "center" }, 
+                "bottom": { anchor: "center" }, 
+                "left": { anchor: "center" }, 
+                "right": { anchor: "center" } 
             } 
         },
         "calendar": { 

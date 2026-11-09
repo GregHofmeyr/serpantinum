@@ -52,8 +52,8 @@ Item {
             shadow: 1
             press: qaMa.pressed ? 1 : (qaMa.containsMouse ? 0.25 : 0)
             pulse: qaBtn.togglePulse
-            Behavior on press { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-            Behavior on tintAmount { NumberAnimation { duration: 180 } }
+            Behavior on press { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
+            Behavior on tintAmount { NumberAnimation { duration: 150 } }
         }
         Behavior on color {
             enabled: view.panel.visible
@@ -63,7 +63,7 @@ Item {
         scale: qaMa.pressed ? 0.95 : (qaMa.containsMouse ? 1.01 : 1.0)
         Behavior on scale {
             enabled: view.panel.visible
-            NumberAnimation { duration: 200; easing.type: Easing.OutQuart }
+            NumberAnimation { duration: 250; easing.type: Easing.OutQuart }
         }
 
         Text {
@@ -111,8 +111,8 @@ Item {
 
             function updateState() {
                 let anyEnabled = false;
-                if (typeof BlueLight !== "undefined" && typeof BlueLight.isAnyEnabled === "function") {
-                    anyEnabled = BlueLight.isAnyEnabled();
+                if (typeof Gamma !== "undefined" && typeof Gamma.isAnyEnabled === "function") {
+                    anyEnabled = Gamma.isAnyEnabled();
                 } else if (typeof Config !== "undefined") {
                     let ds = Config.getSetting("display", {"monitors": {}});
                     let mons = (ds && ds.monitors) ? ds.monitors : {};
@@ -138,7 +138,7 @@ Item {
             }
 
             Connections {
-                target: typeof BlueLight !== "undefined" ? BlueLight : null
+                target: typeof Gamma !== "undefined" ? Gamma : null
                 enabled: view.panel.visible
                 ignoreUnknownSignals: true
                 function onSettingsChanged() {
@@ -170,17 +170,17 @@ Item {
 
                 if (monNames.length > 0) {
                     for (let i = 0; i < monNames.length; i++) {
-                        BlueLight.setEnabled(monNames[i], target);
+                        Gamma.setEnabled(monNames[i], target);
                     }
                 } else {
-                    BlueLight.setEnabled("", target);
+                    Gamma.setEnabled("", target);
                 }
                 nightLightBtn.updateState();
             }
 
             onRightClicked: {
                 view.panel.closeAnim.start();
-                Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/qs_manager.sh", "open", "settings", "display"]);
+                Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/qs_manager.sh", "toggle", "settings", "display"]);
             }
         }
 

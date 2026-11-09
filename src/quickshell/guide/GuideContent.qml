@@ -13,10 +13,13 @@ Item {
 
     readonly property real searchHeaderHeight: popup.s(64)
 
+    opacity: popup.introContent
+    scale: 0.95 + (0.05 * popup.introContent)
+    transform: Translate { y: popup.s(20) * (1.0 - popup.introContent) }
+
     Item {
         id: body
         anchors.top: parent.top
-        anchors.topMargin: popup.s(4)
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -40,7 +43,7 @@ Item {
             opacity: isCurrent ? 1.0 : 0.0
 
             Behavior on opacity {
-                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
             }
 
             Binding {
@@ -81,35 +84,23 @@ Item {
                     }
                 }
 
-                onLoaded: {
-                    popup.registerTabSearchItems(item);
-                    Qt.callLater(function() {
-                        popup.registerTabSearchItems(singleTabLoader.item);
-                    });
-                }
-
                 Component.onCompleted: {
-                    if (popup.standalone || popup.currentTab === tabContentWrapper.parentTabIndex) ensureLoaded();
+                    if (popup.visible && popup.currentTab === tabContentWrapper.parentTabIndex) ensureLoaded();
                 }
 
                 Connections {
                     target: popup
                     function onCurrentTabChanged() {
-                        if (popup.currentTab === tabContentWrapper.parentTabIndex && !tabContentWrapper.hasSubtabs) singleTabLoader.ensureLoaded();
+                        if (popup.loadsTabs && popup.currentTab === tabContentWrapper.parentTabIndex && !tabContentWrapper.hasSubtabs) singleTabLoader.ensureLoaded();
+                    }
+                    function onVisibleChanged() {
+                        if (popup.visible && popup.currentTab === tabContentWrapper.parentTabIndex && !tabContentWrapper.hasSubtabs) singleTabLoader.ensureLoaded();
                     }
                     function onRequestLoad(order) {
                         if (order === popup.tabLoadOrder(tabContentWrapper.parentTabIndex, -1)) singleTabLoader.ensureLoaded();
                     }
-                }
-
-                Connections {
-                    target: singleTabLoader.item
-                    ignoreUnknownSignals: true
-                    function onSearchItemsChanged() {
-                        popup.registerTabSearchItems(singleTabLoader.item);
-                    }
-                    function onSearchEntriesChanged() {
-                        popup.registerTabSearchItems(singleTabLoader.item);
+                    function onReleaseTabs() {
+                        if (popup.currentTab !== tabContentWrapper.parentTabIndex && singleTabLoader.status !== Loader.Null) singleTabLoader.source = "";
                     }
                 }
             }
@@ -132,7 +123,7 @@ Item {
                     opacity: isSubCurrent ? 1.0 : 0.0
 
                     Behavior on opacity {
-                        NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
                     }
 
                     function ensureLoaded() {
@@ -157,37 +148,28 @@ Item {
                         if (item && item.subTabIndex !== undefined) {
                             item.subTabIndex = subIndex;
                         }
-                        popup.registerTabSearchItems(item);
-                        Qt.callLater(function() {
-                            popup.registerTabSearchItems(subTabLoader.item);
-                        });
                     }
 
                     Component.onCompleted: {
-                        if (popup.standalone || isSubCurrent) ensureLoaded();
+                        if (popup.visible && isSubCurrent) ensureLoaded();
                     }
 
                     Connections {
                         target: popup
                         function onCurrentTabChanged() {
-                            if (popup.currentTab === tabContentWrapper.parentTabIndex && popup.currentSubTab === subIndex) subTabLoader.ensureLoaded();
+                            if (popup.loadsTabs && popup.currentTab === tabContentWrapper.parentTabIndex && popup.currentSubTab === subIndex) subTabLoader.ensureLoaded();
                         }
                         function onCurrentSubTabChanged() {
-                            if (popup.currentTab === tabContentWrapper.parentTabIndex && popup.currentSubTab === subIndex) subTabLoader.ensureLoaded();
+                            if (popup.loadsTabs && popup.currentTab === tabContentWrapper.parentTabIndex && popup.currentSubTab === subIndex) subTabLoader.ensureLoaded();
+                        }
+                        function onVisibleChanged() {
+                            if (popup.visible && popup.currentTab === tabContentWrapper.parentTabIndex && popup.currentSubTab === subIndex) subTabLoader.ensureLoaded();
                         }
                         function onRequestLoad(order) {
                             if (order === popup.tabLoadOrder(tabContentWrapper.parentTabIndex, subIndex)) subTabLoader.ensureLoaded();
                         }
-                    }
-
-                    Connections {
-                        target: subTabLoader.item
-                        ignoreUnknownSignals: true
-                        function onSearchItemsChanged() {
-                            popup.registerTabSearchItems(subTabLoader.item);
-                        }
-                        function onSearchEntriesChanged() {
-                            popup.registerTabSearchItems(subTabLoader.item);
+                        function onReleaseTabs() {
+                            if (!subTabLoader.isSubCurrent && subTabLoader.status !== Loader.Null) subTabLoader.source = "";
                         }
                     }
                 }
@@ -200,7 +182,14 @@ Item {
         id: searchOverlay
         anchors.fill: parent
         color: ThemeBackend.base
-        visible: popup.searchActive
+        topRightRadius: !I18n.rtl ? ThemeBackend.clampedBorderRadius : 0
+        bottomRightRadius: !I18n.rtl ? ThemeBackend.clampedBorderRadius : 0
+        topLeftRadius: I18n.rtl ? ThemeBackend.clampedBorderRadius : 0
+        bottomLeftRadius: I18n.rtl ? ThemeBackend.clampedBorderRadius : 0
+        property real reveal: popup.searchActive ? 1.0 : 0.0
+        Behavior on reveal { NumberAnimation { duration: 250; easing.type: Easing.OutQuint } }
+        visible: popup.searchActive || reveal > 0.001
+        opacity: reveal
         z: 10
 
         Item {
@@ -209,16 +198,17 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: contentArea.searchHeaderHeight
+            transform: Translate { y: popup.s(-10) * (1.0 - searchOverlay.reveal) }
 
             Input {
                 id: searchField
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: popup.s(20)
-                anchors.rightMargin: popup.s(20)
-                implicitHeight: popup.s(38)
-                height: popup.s(38)
+                anchors.leftMargin: popup.s(12)
+                anchors.rightMargin: popup.s(12)
+                implicitHeight: popup.s(40)
+                height: popup.s(40)
                 placeholderText: I18n.t("guide.search.placeholder", "Search settings...")
                 showClearButton: true
                 fontPixelSize: popup.s(12)
@@ -261,9 +251,10 @@ Item {
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: popup.s(16)
-            anchors.rightMargin: popup.s(16)
+            anchors.leftMargin: popup.s(12)
+            anchors.rightMargin: popup.s(12)
             anchors.bottomMargin: popup.s(8)
+            transform: Translate { y: popup.s(12) * (1.0 - searchOverlay.reveal) }
         }
     }
 }

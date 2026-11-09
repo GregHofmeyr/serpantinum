@@ -60,13 +60,13 @@ PanelWindow {
             widget: masterWindow.currentActive,
             screen: sName
         });
-        Quickshell.execDetached(["bash", "-c", "echo '" + payload + "' > " + Caching.runDir + "/current_widget"]);
+        currentWidgetFile.setText(payload + "\n");
     }
 
-    Process {
-        id: startupResetProcess
-        command: ["bash", "-c", `[ -n "${Caching.runDir}" ] && echo '{"widget":"hidden","screen":""}' > "${Caching.runDir}/current_widget"`]
-        running: true
+    FileView {
+        id: currentWidgetFile
+        path: (typeof Caching !== "undefined" && Caching.runDir) ? (Caching.runDir + "/current_widget") : ""
+        blockWrites: true
     }
 
     Connections {
@@ -87,12 +87,16 @@ PanelWindow {
             NotificationManager.clearNotifications();
         }
 
+        function embeddedSettings(action: string, tab: string): void {
+            masterWindow.handleEmbeddedSettings(action || "toggle", tab || "");
+        }
+
         function handleCommand(cmd: string, targetWidget: string, arg: string): void {
             cmd = cmd || "";
             targetWidget = targetWidget || "";
             arg = arg || "";
 
-            if (cmd === "clearNotifications" || cmd === "clear_notifications" || cmd === "clearNotifs") {
+            if (cmd === "notifications" && targetWidget === "clear") {
                 NotificationManager.clearNotifications();
                 return;
             }
@@ -106,7 +110,7 @@ PanelWindow {
                 let settingsAction = cmd === "close" ? "close" : (cmd === "open" ? "open" : "toggle");
                 let settingsTab = (cmd === "settings" || cmd === "guide") ? targetWidget : arg;
                 if (settingsTab === "settings" || settingsTab === "guide") settingsTab = "";
-                Quickshell.execDetached(["bash", Caching.serpantinumDir + "/scripts/settings.sh", settingsAction, settingsTab]);
+                masterWindow.handleEmbeddedSettings(settingsAction, settingsTab);
                 return;
             }
 
@@ -136,7 +140,7 @@ PanelWindow {
                 return;
             }
 
-            if (cmd === "airplane" || targetWidget === "airplane" || cmd === "flight" || targetWidget === "flight") {
+            if (cmd === "network" && targetWidget === "airplane") {
                 let isAirplane = !Networking.wifiEnabled && !(Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled);
                 if (isAirplane) {
                     Networking.wifiEnabled = true;
@@ -148,7 +152,7 @@ PanelWindow {
                 return;
             }
 
-            if (cmd === "autohide" || targetWidget === "autohide") {
+            if (cmd === "bar" && targetWidget === "autohide") {
                 let bar = Config.getSetting("bar", {});
                 bar.autohide = !bar.autohide;
                 Config.setSetting("bar", bar);
@@ -218,6 +222,26 @@ PanelWindow {
     property var rawBarSettings: (typeof Config !== "undefined" && Config.rawSettings && Config.rawSettings.bar) ? Config.rawSettings.bar : ({})
     property string barPosition: (rawBarSettings && rawBarSettings.position !== undefined) ? rawBarSettings.position : "top"
     property bool barAutohide: (rawBarSettings && rawBarSettings.autohide !== undefined) ? Boolean(rawBarSettings.autohide) : false
+
+    function handleEmbeddedSettings(action, tab) {
+        let isOpen = masterWindow.targetActive === "guide";
+        if (action === "close") {
+            if (isOpen) switchWidget("hidden", "");
+            return;
+        }
+        if (!isOpen) {
+            let t = getLayout("guide");
+            if (t) switchWidget("guide", tab);
+            return;
+        }
+        let item = widgetCache["guide"] || widgetStack.currentItem;
+        if (tab !== "" && (action === "open" || tab !== masterWindow.activeArg)) {
+            masterWindow.activeArg = tab;
+            if (item && item.gotoTab !== undefined) item.gotoTab(tab);
+        } else if (action === "toggle") {
+            switchWidget("hidden", "");
+        }
+    }
 
     readonly property bool isFullscreenActive: {
         try {
@@ -352,15 +376,15 @@ PanelWindow {
         reportWidgetState();
         Qt.callLater(function() {
             if (masterWindow.currentActive === "hidden") {
-                let w = masterWindow.getLayout("wallpaper");
-                if (w) masterWindow.ensureWidgetItem("wallpaper", w);
+                let t = masterWindow.getLayout("guide");
+                if (t) masterWindow.ensureWidgetItem("guide", t);
             }
         });
     }
 
     Component.onDestruction: {
         if (typeof Caching !== "undefined" && Caching.runDir) {
-            Quickshell.execDetached(["bash", "-c", "echo '{\"widget\":\"hidden\",\"screen\":\"\"}' > " + Caching.runDir + "/current_widget"]);
+            currentWidgetFile.setText("{\"widget\":\"hidden\",\"screen\":\"\"}\n");
         }
     }
 
@@ -441,7 +465,7 @@ PanelWindow {
         if (!result) return null;
 
         let scale = masterWindow.globalUiScale || 1.0;
-        let isFixed = (name === "wallpaper" || name === "notifications" || name === "system" || name === "hidden");
+        let isFixed = (name === "guide" || name === "wallpaper" || name === "notifications" || name === "system" || name === "hidden");
 
         if (effHidden && !isFixed) {
             let offsetAdjustment = Math.round(46 * scale);
@@ -630,11 +654,15 @@ PanelWindow {
     }
 
     function switchWidget(newWidget, arg) {
+        if (newWidget === "hidden" && masterWindow.isClosing) return;
+
         masterWindow.switchGeneration++;
         let gen = masterWindow.switchGeneration;
         masterWindow.targetActive = newWidget;
 
-        masterWindow.userMoved = false;
+        if (newWidget !== "guide") {
+            masterWindow.userMoved = false;
+        }
 
         if (delayedClear.running) {
             delayedClear.stop();

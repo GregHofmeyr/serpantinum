@@ -61,6 +61,7 @@ Item {
     property bool inverse: false
     property bool copiedFlash: false
     readonly property bool hasInputFocus: field.hasFocus || convInput.hasFocus
+    readonly property bool hasHoveredPopup: modeDropdown.popupHovered || convCategoryDropdown.popupHovered || convFromDropdown.popupHovered || convToDropdown.popupHovered
     property var history: []
 
     readonly property string subText: {
@@ -129,17 +130,12 @@ Item {
         return (typeof Caching !== "undefined" && Caching.stateDir ? Caching.stateDir : ((Quickshell.env("HOME") || "") + "/.local/state/serpantinum")) + "/quickactions";
     }
 
-    Process {
-        id: saveStateProc
-    }
-
-    Process {
-        id: loadStateProc
-        command: ["bash", "-c", "FILE='" + root.getStorageDir() + "/calculator.json'; if [ -f \"$FILE\" ]; then cat \"$FILE\"; else echo '{}'; fi"]
-        stdout: StdioCollector {
-            id: loadStateOut
-            onStreamFinished: root.restoreState(loadStateOut.text)
-        }
+    FileView {
+        id: stateFile
+        printErrors: false
+        path: root.getStorageDir() + "/calculator.json"
+        onLoaded: root.restoreState(text())
+        onLoadFailed: root.restoreState("")
     }
 
     Process {
@@ -157,17 +153,12 @@ Item {
         onTriggered: root.copiedFlash = false
     }
 
-    Process {
-        id: saveRatesProc
-    }
-
-    Process {
-        id: loadRatesProc
-        command: ["bash", "-c", "FILE='" + root.getStorageDir() + "/rates.json'; if [ -f \"$FILE\" ]; then cat \"$FILE\"; else echo '{}'; fi"]
-        stdout: StdioCollector {
-            id: loadRatesOut
-            onStreamFinished: root.restoreRates(loadRatesOut.text)
-        }
+    FileView {
+        id: ratesFile
+        printErrors: false
+        path: root.getStorageDir() + "/rates.json"
+        onLoaded: root.restoreRates(text())
+        onLoadFailed: root.restoreRates("")
     }
 
     Process {
@@ -193,10 +184,6 @@ Item {
         onTriggered: root.saveState()
     }
 
-    Component.onCompleted: {
-        loadStateProc.running = true;
-        loadRatesProc.running = true;
-    }
 
     function restoreState(rawText) {
         let txt = (rawText || "").trim();
@@ -264,9 +251,7 @@ Item {
         root.ratesUpdated = Date.now();
         root.ratesStatus = "ok";
         let jsonStr = JSON.stringify({ ts: root.ratesUpdated, rates: parsed.rates, names: parsed.names });
-        saveRatesProc.running = false;
-        saveRatesProc.command = ["bash", "-c", "mkdir -p \"$2\" && printf '%s' \"$1\" > \"$2/rates.json\"", "_", jsonStr, root.getStorageDir()];
-        saveRatesProc.running = true;
+        ratesFile.setText(jsonStr);
     }
 
     function pairFor(cat) {
@@ -326,11 +311,8 @@ Item {
 
     function saveState() {
         if (!root.stateLoaded) return;
-        let dir = root.getStorageDir();
         let jsonStr = JSON.stringify({ history: root.history, angleMode: root.angleMode, advanced: root.advanced, converter: root.converter, convCategory: root.convCategory, convPairs: root.convPairs, convAmount: root.convAmount });
-        saveStateProc.running = false;
-        saveStateProc.command = ["bash", "-c", "mkdir -p '" + dir + "' && printf '%s\\n' '" + jsonStr.replace(/'/g, "'\\''") + "' > '" + dir + "/calculator.json'"];
-        saveStateProc.running = true;
+        stateFile.setText(jsonStr + "\n");
     }
 
     onAngleModeChanged: {
@@ -693,6 +675,7 @@ Item {
 
                 Dropdown {
                     id: modeDropdown
+                    boundsItem: orientedRoot
                     Layout.preferredWidth: root.s(150)
                     Layout.preferredHeight: root.s(32)
                     fuzzySearch: false
@@ -789,6 +772,7 @@ Item {
 
                     Dropdown {
                         id: convCategoryDropdown
+                        boundsItem: orientedRoot
                         Layout.fillWidth: true
                         Layout.preferredHeight: root.s(34)
                         fuzzySearch: false
@@ -841,6 +825,7 @@ Item {
 
                         Dropdown {
                             id: convFromDropdown
+                            boundsItem: orientedRoot
                             Layout.fillWidth: true
                             Layout.preferredHeight: root.s(34)
                             fuzzySearch: root.convCategory === "currency"
@@ -912,6 +897,7 @@ Item {
 
                         Dropdown {
                             id: convToDropdown
+                            boundsItem: orientedRoot
                             Layout.fillWidth: true
                             Layout.preferredHeight: root.s(34)
                             fuzzySearch: root.convCategory === "currency"
