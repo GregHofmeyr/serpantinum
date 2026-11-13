@@ -4,9 +4,9 @@ A rundown of what we've customised on top of [ilyamiro/serpantinum](https://gith
 plus the Hyprspace overview setup. Written to share with a fellow serp user — steal anything useful.
 
 - **Our fork:** `github.com/GregHofmeyr/serpantinum` (upstream = `ilyamiro/serpantinum`)
-- **Base:** upstream `v2.4.3` + the patches/widgets below (last merge 2026-11-09)
+- **Base:** upstream `v2.5.1` + the patches/widgets below (last merge 2026-11-13)
 - **Hyprland:** 0.57.1 — ⚠️ **Lua config now** (see §6) · **Session:** uwsm-managed Hyprland running the serp shell
-- **Runtime dep:** `serpantinum-core` (new in 2.4.x — Rust daemon for metrics/brightness/screentime; see §6)
+- **Runtime deps:** three Rust daemons (NOT bundled) — `serpantinum-core` (metrics/brightness/network/screentime), `serpantinum-audio` (EQ/audio engine, replaces EasyEffects), `serpantinum-gamma` (blue light filter, replaces wl-gammarelay-rs). Install all three; see §6.
 
 ---
 
@@ -140,14 +140,23 @@ Repointed our gesturepad daemon's overview gestures from `hyprexpo:expo` → Hyp
 
 ---
 
-## 4. EQ / audio chain (work in progress)
+## 4. EQ / audio chain — now the native serpantinum-audio engine
 
-Going for a "TikTok-style" system-wide sound chain via **EasyEffects** (Autogain → Bass Enhancer → EQ →
-Exciter → Compressor → Loudness → Limiter; per-device presets). Done so far:
-- **Bypass A/B keybind:** `SUPER+SHIFT+E` → `easyeffects --bypass-toggle` (guarded).
-- Persist scripts staged (`src/scripts/eq-apply.sh` + `eq-restore.sh`) to re-apply the last EQ on login.
-- TODO: finish tuning the chain in the EE GUI + build a serp AudioHub controller widget (bypass button +
-  preset switcher + 10-band EQ + persist).
+**Upstream replaced EasyEffects with `serpantinum-audio`** (a PipeWire processor; see §6), and the shell now
+ships a full audio widget in the music popup: 10-band EQ + presets (Flat/Bass/Treble/Vocal/Pop/Rock/Jazz/
+Classic), balance, mono, channel-swap, dynamic-range modes and a dynamic-EQ toggle — all driven through
+`src/quickshell/media/equalizer.sh` → `serpantinum-audio ctl ...`. The visualizer spectrum reads from it too.
+Streams are routed into a `serpantinum_sink` and processed inline (verify with `wpctl status`).
+
+So our old EasyEffects plan (§4 as it was) is **retired**:
+- The `SUPER+SHIFT+E` → `easyeffects --bypass-toggle` bind in `hyprland.lua` (cachy-configs) is **dead** —
+  EasyEffects is no longer the chain. Rebind or drop it.
+- The staged `src/scripts/eq-apply.sh` + `eq-restore.sh` (untracked) are **obsolete** — serpantinum-audio
+  persists its own state (`~/.local/state/serpantinum/audio.state`). Safe to delete.
+- On first start after the update, `migrate_easyeffects.sh` hands audio over from EasyEffects automatically.
+
+⚠️ **The whole widget silently no-ops if `serpantinum-audio` isn't on PATH** (equalizer.sh bails at its
+`command -v` guard) — this is exactly how it looked broken before we installed the daemon. See §6.
 
 ---
 
@@ -167,14 +176,39 @@ Exciter → Compressor → Loudness → Limiter; per-device presets). Done so fa
 
 **Hyprland 0.57's config parser is Lua-only** (ships `/usr/share/hypr/stubs/hl.meta.lua` = full API + `/usr/share/hypr/hyprland.lua` = default). Our `.conf` session config was migrated to **`~/.config/hypr-serp/hyprland.lua`** (single self-contained file: `hl.config{}`, `hl.bind(k, hl.dsp.*, {flags})`, `hl.monitor{}`, `hl.layer_rule{}`, `hl.on("hyprland.start", …)`). nvidia + monitors were folded in, and the Lua config **parses `~/.config/hypr/monitors.conf`** itself so nwg-displays changes still persist on reload. Validate with `Hyprland --verify-config -c <file>` (prints `config ok`). ⚠️ Hyprland's config Lua is **Luau-ish — `for` loop variables are const** (bind a fresh local). Launched via uwsm (not `start-hyprland`), which throws a cosmetic "started without start-hyprland" nag — we auto-`hyprctl dismissnotify` it a few seconds into boot.
 
-**`serpantinum-core`** (new in 2.4.x, `github.com/ilyamiro/serpantinum-core`, Rust) now serves system usage, brightness, caps/num-lock, idle, screen time, launcher ranking and clipboard over D-Bus (replacing in-shell scripts + `brightnessctl`/`python-jeepney`). **It is NOT bundled** — build + install it or the system-monitor widget shows no data (the shell degrades gracefully via `command -v` guards):
+### Companion daemons (NOT bundled — install all three or features silently no-op)
+
+serp 2.5.x offloads real work to **three separate Rust daemons** (official repos under `ilyamiro/`). The
+shell spawns them by name on `PATH` and guards every call with `command -v`, so a missing one just disables
+its feature instead of crashing — which is why a missing daemon *looks like a bug* rather than an error:
+
+| Daemon | Does | Missing → |
+|---|---|---|
+| `serpantinum-core` (≥0.6.0) | system usage, brightness, caps/num-lock, idle, network, screen time, launcher rank, monitors, wallpaper index | system-monitor empty, brightness/network widgets blank |
+| `serpantinum-audio` | the whole audio widget: EQ + presets, balance, mono, swap, dynamics, dynamic EQ, visualizer (replaces EasyEffects) | audio widget does nothing (see §4) |
+| `serpantinum-gamma` | blue light filter + day/night schedule (replaces wl-gammarelay-rs) | blue light filter does nothing |
+
+**Install (prebuilt — no cargo needed):** each repo publishes checksummed `x86_64-linux` release tarballs —
+exactly what serp's own installer pulls (`install/modules/{core,audio,gamma}.sh`). We stage them under
+`~/.local/share/serpantinum-daemons/<name>/` and symlink the binary into `~/.local/bin`:
 
 ```bash
-git clone https://github.com/ilyamiro/serpantinum-core ~/Projects/serpantinum-core
-cd ~/Projects/serpantinum-core && cargo build --release
-ln -sf ~/Projects/serpantinum-core/target/release/serpantinum-core ~/.local/bin/serpantinum-core
-# verify:  serpantinum-core sysinfo   → one JSON line. Restart serp to lease the feeds.
+for r in serpantinum-core serpantinum-audio serpantinum-gamma; do
+  json=$(curl -fsSL https://api.github.com/repos/ilyamiro/$r/releases/latest)
+  url=$(jq -r '.assets[]|select(.name|test("-x86_64-linux\\.tar\\.gz$"))|.browser_download_url' <<<"$json")
+  sums=$(jq -r '.assets[]|select(.name=="SHA256SUMS")|.browser_download_url' <<<"$json")
+  d=~/.local/share/serpantinum-daemons/$r; mkdir -p "$d/dl"
+  curl -fsSL "$url" -o "$d/dl/a.tgz"; curl -fsSL "$sums" -o "$d/dl/SHA256SUMS"
+  ( cd "$d/dl" && grep -F " ${url##*/}" SHA256SUMS | sha256sum -c - )   # verify before trusting
+  tar -xzf "$d/dl/a.tgz" -C "$d" --strip-components=2 usr/bin/$r
+  ln -sf "$d/$r" ~/.local/bin/$r
+done
+# verify: serpantinum-core sysinfo | head -c80 ; serpantinum-audio version ; serpantinum-gamma --version
+# then restart serp so it leases the feeds + auto-starts the audio engine.
 ```
+*(2026-11-13: installed **core 0.6.1, audio 0.4.0, gamma 0.7.0**. The old cargo-built serpantinum-core 0.5.0
+source tree at `~/Projects/serpantinum-core` is superseded but left in place. The D-Bus `.service` files the
+tarballs carry are **not needed** — the shell spawns the binaries directly, and those files hardcode `/usr/bin`.)*
 
 ---
 
@@ -185,7 +219,7 @@ ln -sf ~/Projects/serpantinum-core/target/release/serpantinum-core ~/.local/bin/
 | `SUPER+mouse5` | Hyprspace overview *(retired on 0.57 — see §3)* |
 | `SUPER+D` | Docker dashboard |
 | `SUPER+SHIFT+N` | Connections (WARP + KDE Connect) |
-| `SUPER+SHIFT+E` | EasyEffects bypass A/B |
+| `SUPER+SHIFT+E` | ~~EasyEffects bypass A/B~~ — **dead** (EasyEffects replaced by serpantinum-audio; see §4) |
 | `SUPER+SHIFT+C` | Caffeine (idle inhibit) |
 | `SUPER+A` launcher · `SUPER+V` clipboard · `SUPER+M` volume · `SUPER+N` network · `SUPER+SHIFT+B` system | serp widgets |
 
