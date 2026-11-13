@@ -268,7 +268,15 @@ Item {
 
         if (root.isMatugenTheme()) {
             root.applyMatugenColors();
-            let wp = themeConfig.wallpaper || Config.getSetting("wallpaper", "");
+            // Fork fix (2026-11-13): serp never writes the `wallpaper` setting, so it goes stale and
+            // this (the only matugen caller that reads it) re-themes from the OLD wallpaper on every
+            // startup / settings-change — the theme "reverts" while the real wallpaper differs. Prefer
+            // the actually-displayed wallpaper snapshot, the same source WallpaperEngine themes from.
+            let wp = "";
+            if (typeof Caching !== "undefined" && typeof Caching.getCacheDir === "function") {
+                wp = Caching.getCacheDir("wallpaper") + "/current_wallpaper.png";
+            }
+            if (!wp) { wp = themeConfig.wallpaper || Config.getSetting("wallpaper", ""); }
             if (typeof Matugen !== "undefined" && typeof Matugen.generate === "function") {
                 Matugen.generate(wp, themeConfig.mode, themeConfig.schemeType);
             }
